@@ -1,9 +1,14 @@
 ﻿namespace NFB.UI.DiscordBot.Tests.StateMachines
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
 
+    using Discord.WebSocket;
+
     using MassTransit.Testing;
+
+    using Moq;
 
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.StateMachines;
@@ -28,8 +33,11 @@
         [Fact]
         public async Task ReceiveFlightCreatedEventNewSagaInCreatedState()
         {
+            var mockDiscord = new Mock<DiscordBotTestSocketClient>();
+            mockDiscord.SetupGet(p => p.Guilds).Returns(new List<SocketGuild>(new SocketGuild[1]));
+
             var harness = new DiscordBotTestBus();
-            var stateMachine = new FlightStateMachine(new DiscordBotTestSocketClient());
+            var stateMachine = new FlightStateMachine(mockDiscord.Object);
             var saga = harness.StateMachineSaga<FlightState, FlightStateMachine>(stateMachine);
             var id = Guid.NewGuid();
 
@@ -58,8 +66,11 @@
         [Fact]
         public async Task ReceiveFlightStartingEventSagaInActiveState()
         {
+            var mockDiscord = new Mock<DiscordBotTestSocketClient>();
+            mockDiscord.SetupGet(p => p.Guilds).Returns(new List<SocketGuild>(new SocketGuild[1]));
+
             var harness = new DiscordBotTestBus();
-            var stateMachine = new FlightStateMachine(new DiscordBotTestSocketClient());
+            var stateMachine = new FlightStateMachine(mockDiscord.Object);
             var saga = harness.StateMachineSaga<FlightState, FlightStateMachine>(stateMachine);
             var id = Guid.NewGuid();
 
