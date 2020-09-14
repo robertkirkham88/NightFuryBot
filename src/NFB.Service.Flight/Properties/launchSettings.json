@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "NFB.Service.Flight": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

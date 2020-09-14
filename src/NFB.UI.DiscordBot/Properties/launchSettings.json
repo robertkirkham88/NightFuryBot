@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "NFB.UI.DiscordBot": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

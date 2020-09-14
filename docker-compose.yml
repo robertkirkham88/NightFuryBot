@@ -1,0 +1,92 @@
+version: '3.4'
+
+services:
+    nfb.ui.api:
+        image: ${DOCKER_REGISTRY-}nfbuiapi
+        build:
+            context: .
+            dockerfile: src/NFB.UI.Api/Dockerfile
+        networks:
+            - nfb.networks.bus
+            - nfb.networks.database
+            - nfb.networks.logging
+        depends_on:
+            - nfb.rabbitmq
+            - nfb.logging
+            - nfb.database
+
+    nfb.ui.discordbot:
+        image: ${DOCKER_REGISTRY-}nfbuidiscordbot
+        build:
+            context: .
+            dockerfile: src/NFB.UI.DiscordBot/Dockerfile
+        environment:
+            BotToken: ""
+        networks:
+            - nfb.networks.bus
+            - nfb.networks.database
+            - nfb.networks.logging
+        depends_on:
+            - nfb.rabbitmq
+            - nfb.logging
+            - nfb.database
+
+    nfb.service.flight:
+        image: ${DOCKER_REGISTRY-}nfbserviceflight
+        build:
+            context: .
+            dockerfile: src/NFB.Service.Flight/Dockerfile
+        networks:
+            - nfb.networks.bus
+            - nfb.networks.database
+            - nfb.networks.logging
+        depends_on:
+            - nfb.rabbitmq
+            - nfb.logging
+            - nfb.database
+
+    nfb.rabbitmq:
+        image: ${DOCKER_REGISTRY-}nfbrabbitmq
+        build:
+            context: .
+            dockerfile: RabbitMqDockerfile
+        ports:
+            - "5672"
+            - "6100:15672"
+        networks:
+            - nfb.networks.bus
+        environment:
+            - RABBITMQ_DEFAULT_USER=rabbitmquser
+            - RABBITMQ_DEFAULT_PASS=k6G4LdPttQL2DvnH
+
+    nfb.database:
+        image: postgres:latest
+        volumes:
+            - C:\docker\nfb.database\var\lib\postgresql\data:/var/lib/postgresql/data
+        environment:
+            POSTGRES_USER: dbuser
+            POSTGRES_PASSWORD: z1Tf3U9io5ufol
+        networks:
+            - nfb.networks.database
+
+    nfb.logging:
+        image: datalust/seq
+        networks:
+            - nfb.networks.logging
+        environment:
+            - ACCEPT_EULA=Y
+        ports:
+            - "6101:80"
+            - "5341"
+
+    nfb.database.admin:
+        image: adminer
+        ports:
+            - "6102:8080"
+        networks:
+            - nfb.networks.database
+
+networks:
+    nfb.networks.bus:
+    nfb.networks.logging:
+    nfb.networks.database:
