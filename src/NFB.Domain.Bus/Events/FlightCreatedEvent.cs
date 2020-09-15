@@ -2,6 +2,7 @@
 {
     using System;
 
+    using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Models;
 
     /// <summary>
@@ -14,7 +15,7 @@
         /// <summary>
         /// Gets or sets the destination.
         /// </summary>
-        public string Destination { get; set; }
+        public AirportEntityDto Destination { get; set; }
 
         /// <summary>
         /// Gets or sets the id.
@@ -24,7 +25,7 @@
         /// <summary>
         /// Gets or sets the origin.
         /// </summary>
-        public string Origin { get; set; }
+        public AirportEntityDto Origin { get; set; }
 
         /// <summary>
         /// Gets or sets the start time.

@@ -31,6 +31,7 @@
             var airports = new List<AirportModel>
             {
                new AirportModel { ICAO = "EGCC" },
+               new AirportModel { ICAO = "egcc" },
                new AirportModel { ICAO = "EGLL" },
                new AirportModel { ICAO = "EGKK" }
             };
@@ -52,6 +53,7 @@
         /// </param>
         [Theory]
         [InlineData("EGCC", true)]
+        [InlineData("egcc", true)]
         [InlineData("EGLL", true)]
         [InlineData("EGKK", true)]
         [InlineData("EGPH", false)]
@@ -72,6 +74,7 @@
         /// </param>
         [Theory]
         [InlineData("EGCC")]
+        [InlineData("egcc")]
         [InlineData("EGLL")]
         [InlineData("EGKK")]
         public void GetAirportReturnsAirport(string icao)
@@ -80,7 +83,7 @@
             var result = this.repository.GetAirport(icao);
 
             // Assert
-            Assert.Equal(icao, result.ICAO);
+            Assert.Equal(icao.ToUpper(), result.ICAO);
         }
 
         /// <summary>

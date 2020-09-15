@@ -8,10 +8,12 @@
     using MassTransit;
 
     using NFB.Domain.Bus.Commands;
+    using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Events;
     using NFB.Domain.Bus.Responses;
     using NFB.Service.Flight.Entities;
     using NFB.Service.Flight.Persistence;
+    using NFB.Service.Flight.Repository;
     using NFB.Service.Flight.Validators;
 
     /// <summary>
@@ -20,6 +22,11 @@
     public class CreateFlightCommandConsumer : IConsumer<CreateFlightCommand>
     {
         #region Private Fields
+
+        /// <summary>
+        /// The airport repository.
+        /// </summary>
+        private readonly AirportRepository airportRepository;
 
         /// <summary>
         /// The database.
@@ -41,9 +48,13 @@
         /// <param name="database">
         /// The database.
         /// </param>
-        public CreateFlightCommandConsumer(FlightDbContext database)
+        /// <param name="airportRepository">
+        /// The airport Repository.
+        /// </param>
+        public CreateFlightCommandConsumer(FlightDbContext database, AirportRepository airportRepository)
         {
             this.database = database;
+            this.airportRepository = airportRepository;
             this.validator = new FlightEntityValidator();
         }
 
@@ -79,12 +90,16 @@
                 var databaseEntity = await this.database.Flights.AddAsync(entity);
                 await this.database.SaveChangesAsync();
 
+                // Airport DTOs
+                var originAirport = this.airportRepository.GetAirport(entity.Origin);
+                var destinationAirport = this.airportRepository.GetAirport(entity.Destination);
+
                 // Respond to the message.
                 await context.RespondAsync(new CreateFlightCommandSuccessResponse { Id = databaseEntity.Entity.Id });
                 await context.Publish(new FlightCreatedEvent
                 {
-                    Destination = databaseEntity.Entity.Destination,
-                    Origin = databaseEntity.Entity.Origin,
+                    Destination = new AirportEntityDto { ICAO = destinationAirport.ICAO, Latitude = destinationAirport.ICAO, Longitude = destinationAirport.Longitude, Name = destinationAirport.Name },
+                    Origin = new AirportEntityDto { ICAO = originAirport.ICAO, Latitude = originAirport.Latitude, Longitude = originAirport.Longitude, Name = originAirport.Name },
                     StartTime = databaseEntity.Entity.StartTime,
                     Id = databaseEntity.Entity.Id
                 });

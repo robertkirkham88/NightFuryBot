@@ -2,6 +2,7 @@
 {
     using System;
 
+    using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Events;
 
     using Xunit;
@@ -29,15 +30,15 @@
             var command = new FlightCreatedEvent()
             {
                 Id = id,
-                Destination = destination,
-                Origin = origin,
+                Destination = new AirportEntityDto { ICAO = destination },
+                Origin = new AirportEntityDto { ICAO = origin },
                 StartTime = startTime
             };
 
             // Assert
             Assert.Equal(id, command.Id);
-            Assert.Equal(destination, command.Destination);
-            Assert.Equal(origin, command.Origin);
+            Assert.Equal(destination, command.Destination.ICAO);
+            Assert.Equal(origin, command.Origin.ICAO);
             Assert.Equal(startTime, command.StartTime);
         }
 

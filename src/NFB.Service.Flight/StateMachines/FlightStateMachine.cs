@@ -49,8 +49,8 @@
                             new FlightStarting
                             {
                                 Id = context.Data.Id,
-                                Origin = context.Data.Origin,
-                                Destination = context.Data.Destination,
+                                Origin = context.Data.Origin.ICAO,
+                                Destination = context.Data.Destination.ICAO,
                                 StartTime = context.Data.StartTime
                             }),
                         context =>

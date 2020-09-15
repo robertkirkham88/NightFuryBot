@@ -44,7 +44,7 @@
 
                                 if (category?.Channels.First(p => p.Name == "flights") is IMessageChannel channel)
                                 {
-                                    var message = await channel.SendMessageAsync($"{context.Data.Id} -> {context.Data.Origin} to {context.Data.Destination}: {context.Data.StartTime:s}");
+                                    var message = await channel.SendMessageAsync($"{context.Data.Id} -> {context.Data.Origin.ICAO} to {context.Data.Destination.ICAO}: {context.Data.StartTime:s}");
 
                                     context.Instance.MessageId = message.Id;
                                 }

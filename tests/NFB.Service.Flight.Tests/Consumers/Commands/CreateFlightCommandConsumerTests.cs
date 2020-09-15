@@ -1,6 +1,7 @@
 ﻿namespace NFB.Service.Flight.Tests.Consumers.Co
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -14,6 +15,9 @@
     using NFB.Domain.Bus.Events;
     using NFB.Domain.Bus.Responses;
     using NFB.Service.Flight.Consumers.Commands;
+    using NFB.Service.Flight.Models;
+    using NFB.Service.Flight.Persistence;
+    using NFB.Service.Flight.Repository;
     using NFB.Service.Flight.Tests.TestFactory;
 
     using Xunit;
@@ -21,8 +25,27 @@
     /// <summary>
     /// The create flight command consumer tests.
     /// </summary>
-    public class CreateFlightCommandConsumerTests : ConsumerTestObject<CreateFlightCommandConsumer>
+    public class CreateFlightCommandConsumerTests
     {
+        #region Private Fields
+
+        /// <summary>
+        /// The consumer.
+        /// </summary>
+        private readonly CreateFlightCommandConsumer consumer;
+
+        /// <summary>
+        /// The database.
+        /// </summary>
+        private readonly FlightDbContext database;
+
+        /// <summary>
+        /// The harness.
+        /// </summary>
+        private readonly InMemoryTestHarness harness;
+
+        #endregion Private Fields
+
         #region Public Constructors
 
         /// <summary>
@@ -30,7 +53,20 @@
         /// </summary>
         public CreateFlightCommandConsumerTests()
         {
-            this.harness.Consumer(() => new CreateFlightCommandConsumer(this.database));
+            var airportRepository = new AirportRepository(new AirportRootModel
+            {
+                Airports = new List<AirportModel>
+                 {
+                     new AirportModel { ICAO = "EGCC", Name = "Manchester", Longitude = "50.4", Latitude = "-50.4" },
+                     new AirportModel { ICAO = "EGLL", Name = "London", Longitude = "70.4", Latitude = "-70.4" },
+                 }
+            });
+
+            // Constructors
+            this.database = new FlightDbContext(new DbContextOptionsBuilder().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+            this.consumer = new CreateFlightCommandConsumer(this.database, airportRepository);
+            this.harness = new InMemoryTestHarness();
+            this.harness.Consumer(() => this.consumer);
             this.harness.Start().GetAwaiter().GetResult();
         }
 
@@ -171,7 +207,7 @@
             await this.consumer.Consume(mockConsumer.Object);
 
             // Assert
-            mockConsumer.Verify(m => m.Publish(It.Is<FlightCreatedEvent>(p => p.Destination == command.Destination && p.Origin == command.Origin && p.StartTime == command.StartTime), It.IsAny<CancellationToken>()));
+            mockConsumer.Verify(m => m.Publish(It.Is<FlightCreatedEvent>(p => p.Destination.ICAO == command.Destination && p.Origin.ICAO == command.Origin && p.StartTime == command.StartTime), It.IsAny<CancellationToken>()));
         }
 
         #endregion Public Methods

@@ -10,6 +10,7 @@
 
     using Moq;
 
+    using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.StateMachines;
     using NFB.UI.DiscordBot.States;
@@ -46,8 +47,8 @@
             await harness.Bus.Publish(new FlightCreatedEvent
             {
                 Id = id,
-                Destination = "EGCC",
-                Origin = "EGLL",
+                Destination = new AirportEntityDto { ICAO = "EGCC" },
+                Origin = new AirportEntityDto { ICAO = "EGLL" },
                 StartTime = DateTime.UtcNow.AddHours(3)
             });
 
@@ -79,8 +80,8 @@
             await harness.Bus.Publish(new FlightCreatedEvent
             {
                 Id = id,
-                Destination = "EGCC",
-                Origin = "EGLL",
+                Destination = new AirportEntityDto { ICAO = "EGCC" },
+                Origin = new AirportEntityDto { ICAO = "EGLL" },
                 StartTime = DateTime.UtcNow.AddHours(3)
             });
 

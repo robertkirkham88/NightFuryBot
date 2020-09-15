@@ -47,7 +47,7 @@
         /// </returns>
         public bool Exists(string icao)
         {
-            return this.airports.Any(p => p.ICAO == icao);
+            return this.airports.Any(p => p.ICAO == icao.ToUpper());
         }
 
         /// <summary>
@@ -61,7 +61,7 @@
         /// </returns>
         public AirportModel GetAirport(string icao)
         {
-            return this.airports.FirstOrDefault(p => p.ICAO == icao);
+            return this.airports.FirstOrDefault(p => p.ICAO == icao.ToUpper());
         }
 
         #endregion Public Methods
