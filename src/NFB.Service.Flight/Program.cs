@@ -15,9 +15,13 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
 
+    using Newtonsoft.Json;
+
     using NFB.Domain.Settings;
     using NFB.Infrastructure.CrossCutting.Logging;
+    using NFB.Service.Flight.Models;
     using NFB.Service.Flight.Persistence;
+    using NFB.Service.Flight.Repository;
     using NFB.Service.Flight.StateMachines;
     using NFB.Service.Flight.States;
 
@@ -76,6 +80,10 @@
                             {
                                 databaseContext.Database.Migrate();
                             }
+
+                            var airportsJsonSerialized = JsonConvert.DeserializeObject<AirportRootModel>(File.ReadAllText(@"airports.json"));
+                            var airportRepository = new AirportRepository(airportsJsonSerialized);
+                            configureDelegate.AddSingleton(airportRepository);
                         })
                 .ConfigureContainer<ContainerBuilder>(
                     (builderContext, configureDelegate) =>
