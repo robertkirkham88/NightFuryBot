@@ -9,9 +9,13 @@
     using Discord.Commands;
     using Discord.WebSocket;
 
+    using MassTransit;
+
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+
+    using NFB.Domain.Bus.Events;
 
     /// <summary>
     /// The discord bot service.
@@ -19,6 +23,11 @@
     public class DiscordBotService : IHostedService
     {
         #region Private Fields
+
+        /// <summary>
+        /// The bus.
+        /// </summary>
+        private readonly IBusControl bus;
 
         /// <summary>
         /// The client.
@@ -67,12 +76,16 @@
         /// <param name="configuration">
         /// The configuration.
         /// </param>
-        public DiscordBotService(ILogger<DiscordBotService> logger, DiscordSocketClient client, CommandService commandService, IServiceProvider serviceProvider, IConfiguration configuration)
+        /// <param name="bus">
+        /// The bus.
+        /// </param>
+        public DiscordBotService(ILogger<DiscordBotService> logger, DiscordSocketClient client, CommandService commandService, IServiceProvider serviceProvider, IConfiguration configuration, IBusControl bus)
         {
             this.logger = logger;
             this.client = client;
             this.commandService = commandService;
             this.serviceProvider = serviceProvider;
+            this.bus = bus;
             this.token = configuration["BotToken"];
         }
 
@@ -119,6 +132,7 @@
 
             this.client.LoggedIn += this.OnLoggedIn;
             this.client.Ready += this.OnReady;
+            this.client.UserVoiceStateUpdated += this.UseVoiceStatusUpdate;
 
             try
             {
@@ -158,5 +172,73 @@
         }
 
         #endregion Public Methods
+
+        #region Private Methods
+
+        /// <summary>
+        /// User joined voice channel.
+        /// </summary>
+        /// <param name="user">
+        /// The user.
+        /// </param>
+        /// <param name="channel">
+        /// The channel.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
+        private async Task UserJoinedVoiceChannel(SocketUser user, SocketVoiceState channel)
+        {
+            await this.bus.Publish(
+                new UserJoinedVoiceChannelEvent { UserId = user.Id, ChannelId = channel.VoiceChannel.Id });
+        }
+
+        /// <summary>
+        /// User left voice channel.
+        /// </summary>
+        /// <param name="user">
+        /// The user.
+        /// </param>
+        /// <param name="channel">
+        /// The channel.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
+        private async Task UserLeftVoiceChannel(SocketUser user, SocketVoiceState channel)
+        {
+            await this.bus.Publish(
+                new UserLeftVoiceChannelEvent { UserId = user.Id, ChannelId = channel.VoiceChannel.Id });
+        }
+
+        /// <summary>
+        /// The use voice status update.
+        /// </summary>
+        /// <param name="user">
+        /// The user.
+        /// </param>
+        /// <param name="before">
+        /// The before.
+        /// </param>
+        /// <param name="after">
+        /// The after.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
+        private async Task UseVoiceStatusUpdate(SocketUser user, SocketVoiceState before, SocketVoiceState after)
+        {
+            if (before.VoiceChannel != null)
+            {
+                await this.UserLeftVoiceChannel(user, before);
+            }
+
+            if (after.VoiceChannel != null)
+            {
+                await this.UserJoinedVoiceChannel(user, after);
+            }
+        }
+
+        #endregion Private Methods
     }
 }

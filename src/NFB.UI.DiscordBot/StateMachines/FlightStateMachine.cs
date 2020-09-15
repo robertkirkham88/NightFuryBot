@@ -8,6 +8,8 @@
     using Discord.WebSocket;
 
     using NFB.Domain.Bus.Events;
+    using NFB.UI.DiscordBot.Extensions;
+    using NFB.UI.DiscordBot.Persistence;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
@@ -23,7 +25,10 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        public FlightStateMachine(DiscordSocketClient client)
+        /// <param name="database">
+        /// The database
+        /// </param>
+        public FlightStateMachine(DiscordSocketClient client, DiscordBotDbContext database)
         {
             // Instance
             this.InstanceState(p => p.CurrentState);
@@ -31,6 +36,9 @@
             // Events
             this.Event(() => this.FlightCreatedEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.FlightStartingEvent, x => x.CorrelateById(p => p.Message.Id));
+            this.Event(() => this.UserJoinedVoiceChannelEvent, x => x.CorrelateBy(p => p.VoiceChannelId, p => p.Message.ChannelId.ToGuid()));
+            this.Event(() => this.UserLeftVoiceChannelEvent, x => x.CorrelateBy(p => p.VoiceChannelId, p => p.Message.ChannelId.ToGuid()));
+            this.Event(() => this.VatsimPilotUpdatedEvent, x => x.CorrelateBy((state, context) => state.UsersInVoiceChannel.Contains(context.Message.UserId.ToGuid())));
 
             // Work flow
             this.Initially(
@@ -48,6 +56,12 @@
 
                                     context.Instance.MessageId = message.Id;
                                 }
+                            })
+                    .Then(
+                        context =>
+                            {
+                                context.Instance.Destination = context.Data.Destination.ICAO;
+                                context.Instance.Origin = context.Data.Origin.ICAO;
                             })
                 .TransitionTo(this.Created));
 
@@ -69,12 +83,26 @@
                                                 f.CategoryId = category.Id;
                                             });
 
-                                    context.Instance.VoiceChannelId = voiceChannel.Id;
+                                    context.Instance.VoiceChannelId = voiceChannel.Id.ToGuid();
                                 }
                             })
                     .TransitionTo(this.Active));
 
-            this.During(this.Active);
+            this.During(
+                this.Active,
+                this.When(this.UserJoinedVoiceChannelEvent).Then(context => context.Instance.UsersInVoiceChannel.Add(context.Data.UserId.ToGuid())),
+                this.When(this.UserLeftVoiceChannelEvent).Then(context => context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId.ToGuid())),
+                this.When(this.VatsimPilotUpdatedEvent).ThenAsync(
+                    async (context) =>
+                        {
+                            var server = client.Guilds.First();
+                            var category = server?.CategoryChannels.First(p => p.Name == "flights");
+
+                            if (category?.Channels.First(p => p.Name == "flights") is IMessageChannel channel)
+                            {
+                                await channel.SendMessageAsync($"{context.Data.VatsimId} -> {context.Data.Longitude} {context.Data.Latitude}");
+                            }
+                        }));
         }
 
         #endregion Public Constructors
@@ -100,6 +128,21 @@
         /// Gets or sets the flight starting event.
         /// </summary>
         public Event<FlightStartingEvent> FlightStartingEvent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the user joined voice channel event.
+        /// </summary>
+        public Event<UserJoinedVoiceChannelEvent> UserJoinedVoiceChannelEvent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the user left voice channel event.
+        /// </summary>
+        public Event<UserLeftVoiceChannelEvent> UserLeftVoiceChannelEvent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the vatsim pilot updated event.
+        /// </summary>
+        public Event<VatsimPilotUpdatedEvent> VatsimPilotUpdatedEvent { get; set; }
 
         #endregion Public Properties
     }

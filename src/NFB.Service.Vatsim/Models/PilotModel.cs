@@ -1,7 +1,6 @@
 ﻿namespace NFB.Service.Vatsim.Models
 {
     using System;
-    using System.Collections.Generic;
 
     using Newtonsoft.Json;
 

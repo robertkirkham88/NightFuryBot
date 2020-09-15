@@ -1,9 +1,11 @@
 ﻿namespace NFB.Domain.Bus.Events
 {
+    using NFB.Domain.Models;
+
     /// <summary>
     /// The vatsim pilot updated.
     /// </summary>
-    public class VatsimPilotUpdated
+    public class VatsimPilotUpdatedEvent : BaseEvent
     {
         #region Public Properties
 
@@ -26,6 +28,11 @@
         /// Gets or sets the origin airport.
         /// </summary>
         public string OriginAirport { get; set; }
+
+        /// <summary>
+        /// Gets or sets the user id.
+        /// </summary>
+        public ulong UserId { get; set; }
 
         /// <summary>
         /// Gets or sets the vatsim id.

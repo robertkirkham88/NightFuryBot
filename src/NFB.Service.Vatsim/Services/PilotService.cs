@@ -117,19 +117,25 @@
         private async void UpdatePilotInformation(object source, System.Timers.ElapsedEventArgs e)
         {
             var jsonData = new WebClient().DownloadString("http://cluster.data.vatsim.net/vatsim-data.json");
-            var databasePilotsIds = await this.database.Pilots.Select(p => p.VatsimId).ToListAsync();
-            var onlinePilots = JsonConvert.DeserializeObject<PilotRootModel>(jsonData).Pilots.Where(p => databasePilotsIds.Contains(p.Cid));
+            var databasePilotsIds = await this.database.Pilots.ToListAsync();
+            var onlinePilots = JsonConvert.DeserializeObject<PilotRootModel>(jsonData).Pilots;
 
-            foreach (var pilot in onlinePilots)
+            foreach (var pilot in databasePilotsIds)
             {
-                await this.bus.Publish(new VatsimPilotUpdated
+                var isOnline = onlinePilots.FirstOrDefault(p => p.Cid == pilot.VatsimId);
+
+                if (isOnline != null)
                 {
-                    DestinationAirport = pilot.PlannedDestinationAirport,
-                    OriginAirport = pilot.PlannedDepartureAirport,
-                    Latitude = pilot.Latitude,
-                    Longitude = pilot.Longitude,
-                    VatsimId = pilot.Cid
-                });
+                    await this.bus.Publish(new VatsimPilotUpdatedEvent
+                    {
+                        DestinationAirport = isOnline.PlannedDestinationAirport,
+                        OriginAirport = isOnline.PlannedDepartureAirport,
+                        Latitude = isOnline.Latitude,
+                        Longitude = isOnline.Longitude,
+                        VatsimId = isOnline.Cid,
+                        UserId = ulong.Parse(pilot.UserId)
+                    });
+                }
             }
         }
 
