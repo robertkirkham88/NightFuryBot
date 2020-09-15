@@ -137,7 +137,7 @@
                 StartTime = DateTime.UtcNow.AddSeconds(5)
             });
 
-            var instance = await saga.Exists(id, stateMachine.Started, TimeSpan.FromSeconds(5));
+            var instance = await saga.Exists(id, stateMachine.Started, TimeSpan.FromSeconds(10));
             Assert.NotNull(instance);
 
             Assert.True(await harness.Published.Any<FlightStartedEvent>(p => p.Context.Message.Id == id));
