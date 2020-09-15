@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "NFB.Service.Vatsim": {
+      "commandName": "Project"
+    },
+    "Docker (1)": {
+      "commandName": "Docker"
+    }
+  }
+}

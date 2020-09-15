@@ -45,6 +45,20 @@ services:
             - nfb.logging
             - nfb.database
 
+    nfb.service.vatsim:
+        image: ${DOCKER_REGISTRY-}nfbservicevatsim
+        build:
+            context: .
+            dockerfile: src/NFB.Service.Vatsim/Dockerfile
+        networks:
+            - nfb.networks.bus
+            - nfb.networks.database
+            - nfb.networks.logging
+        depends_on:
+            - nfb.rabbitmq
+            - nfb.logging
+            - nfb.database
+
     nfb.rabbitmq:
         image: ${DOCKER_REGISTRY-}nfbrabbitmq
         build:
@@ -85,6 +99,8 @@ services:
             - "6102:8080"
         networks:
             - nfb.networks.database
+
+
 
 networks:
     nfb.networks.bus:
