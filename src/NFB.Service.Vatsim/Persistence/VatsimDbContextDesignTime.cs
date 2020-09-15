@@ -21,7 +21,7 @@
         /// </returns>
         public VatsimDbContext CreateDbContext(string[] args)
         {
-            var options = new DbContextOptionsBuilder<VatsimDbContext>().UseNpgsql("Host=localhost;Database=VatsimService-Migrations-150920;Username=superuser;Password=z1Tf3U9io5ufol").Options;
+            var options = new DbContextOptionsBuilder<VatsimDbContext>().UseNpgsql("Host=localhost;Database=VatsimService-Migrations-150920;Username=postgres").Options;
             return new VatsimDbContext(options);
         }
 

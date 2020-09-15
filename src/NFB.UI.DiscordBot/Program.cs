@@ -94,6 +94,7 @@
                                         busConfigurator.AddSagaStateMachine<FlightStateMachine, FlightState>().MartenRepository(configuration.GetConnectionString("db"));
 
                                         busConfigurator.AddRequestClient<CreateFlightCommand>(new Uri($"{busSettings.Host}/service_flight"));
+                                        busConfigurator.AddRequestClient<RegisterVatsimCommand>(new Uri($"{busSettings.Host}/service_vatsim"));
 
                                         busConfigurator.UsingRabbitMq(
                                             (registrationContext, rabbitConfigurator) =>

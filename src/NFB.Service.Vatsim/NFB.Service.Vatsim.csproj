@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Persistence\Migrations\20200915121821_AddPilotEntity.cs" />
+    <Compile Remove="Persistence\Migrations\20200915121821_AddPilotEntity.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="appsettings.json" />
   </ItemGroup>
 
@@ -45,7 +50,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\NFB.Domain.Bus\NFB.Domain.Bus.csproj" />
     <ProjectReference Include="..\NFB.Domain\NFB.Domain.csproj" />
     <ProjectReference Include="..\NFB.Infrastructure.CrossCutting\NFB.Infrastructure.CrossCutting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Repository\" />
   </ItemGroup>
 </Project>

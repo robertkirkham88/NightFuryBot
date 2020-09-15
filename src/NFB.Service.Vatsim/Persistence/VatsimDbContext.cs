@@ -2,6 +2,8 @@
 {
     using Microsoft.EntityFrameworkCore;
 
+    using NFB.Service.Vatsim.Entities;
+
     /// <summary>
     /// The flight database context.
     /// </summary>
@@ -21,5 +23,14 @@
         }
 
         #endregion Public Constructors
+
+        #region Public Properties
+
+        /// <summary>
+        /// Gets or sets the pilots.
+        /// </summary>
+        public DbSet<PilotEntity> Pilots { get; set; }
+
+        #endregion Public Properties
     }
 }
