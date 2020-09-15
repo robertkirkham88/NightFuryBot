@@ -24,6 +24,7 @@
                 .Enrich.FromLogContext()
                 .Enrich.WithMachineName()
                 .Enrich.WithEnvironmentUserName()
+                .Enrich.FromMassTransit()
                 .WriteTo.Seq("http://nfb.logging:5341")
                 .WriteTo.Console(outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level}] ({SourceContext}.{Method}) {Message}{NewLine}{Exception}");
         }
