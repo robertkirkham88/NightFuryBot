@@ -11,6 +11,7 @@
     using MassTransit.Testing;
 
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Logging.Abstractions;
 
     using Moq;
 
@@ -69,7 +70,7 @@
             mockDiscord.SetupGet(p => p.Guilds).Returns(new List<SocketGuild>(new SocketGuild[1]));
 
             var harness = new DiscordBotTestBus();
-            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database);
+            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database, new NullLogger<FlightStateMachine>());
             var saga = harness.StateMachineSaga<FlightState, FlightStateMachine>(stateMachine);
             var id = Guid.NewGuid();
 
@@ -103,7 +104,7 @@
             mockDiscord.SetupGet(p => p.Guilds).Returns(new List<SocketGuild>(new SocketGuild[1]));
 
             var harness = new DiscordBotTestBus();
-            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database);
+            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database, new NullLogger<FlightStateMachine>());
             var saga = harness.StateMachineSaga<FlightState, FlightStateMachine>(stateMachine);
             var id = Guid.NewGuid();
 
@@ -121,8 +122,8 @@
             Assert.NotNull(await saga.Exists(id, stateMachine.Created, TimeSpan.FromSeconds(1)));
 
             var instance = saga.Created.Select(p => p.CorrelationId == id).FirstOrDefault();
-            Assert.Equal("EGCC", instance?.Saga.Destination);
-            Assert.Equal("EGLL", instance?.Saga.Origin);
+            Assert.Equal("EGCC", instance?.Saga.Destination.ICAO);
+            Assert.Equal("EGLL", instance?.Saga.Origin.ICAO);
         }
 
         /// <summary>
@@ -138,7 +139,7 @@
             mockDiscord.SetupGet(p => p.Guilds).Returns(new List<SocketGuild>(new SocketGuild[1]));
 
             var harness = new DiscordBotTestBus();
-            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database);
+            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database, new NullLogger<FlightStateMachine>());
             var saga = harness.StateMachineSaga<FlightState, FlightStateMachine>(stateMachine);
             var id = Guid.NewGuid();
 
@@ -179,7 +180,7 @@
             mockDiscord.SetupGet(p => p.Guilds).Returns(new List<SocketGuild>(new SocketGuild[1]));
 
             var harness = new DiscordBotTestBus();
-            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database);
+            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database, new NullLogger<FlightStateMachine>());
             var saga = harness.StateMachineSaga<FlightState, FlightStateMachine>(stateMachine);
             var id = Guid.NewGuid();
 
@@ -225,7 +226,7 @@
             mockDiscord.SetupGet(p => p.Guilds).Returns(new List<SocketGuild>(new SocketGuild[1]));
 
             var harness = new DiscordBotTestBus();
-            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database);
+            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database, new NullLogger<FlightStateMachine>());
             var saga = harness.StateMachineSaga<FlightState, FlightStateMachine>(stateMachine);
             var id = Guid.NewGuid();
 
