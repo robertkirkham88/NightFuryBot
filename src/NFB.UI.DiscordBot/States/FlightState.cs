@@ -6,6 +6,7 @@
     using Automatonymous;
 
     using NFB.Domain.Bus.DTOs;
+    using NFB.UI.DiscordBot.Models;
 
     /// <summary>
     /// The flight state.
@@ -50,9 +51,19 @@
         public DateTime StartTime { get; set; }
 
         /// <summary>
+        /// Gets or sets the update pilot data in message token.
+        /// </summary>
+        public Guid? UpdatePilotDataInMessageToken { get; set; }
+
+        /// <summary>
         /// Gets or sets the users in voice channel.
         /// </summary>
         public IList<Guid> UsersInVoiceChannel { get; set; } = new List<Guid>();
+
+        /// <summary>
+        /// Gets or sets the vatsim pilot data.
+        /// </summary>
+        public IList<VatsimPilotData> VatsimPilotData { get; set; } = new List<VatsimPilotData>();
 
         /// <summary>
         /// Gets or sets the voice channel id.

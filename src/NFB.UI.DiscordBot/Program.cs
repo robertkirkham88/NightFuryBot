@@ -89,6 +89,8 @@
                             configureDelegate.AddMassTransit(
                                 busConfigurator =>
                                     {
+                                        busConfigurator.AddRabbitMqMessageScheduler();
+
                                         busConfigurator.AddConsumers(Assembly.GetExecutingAssembly());
                                         busConfigurator.AddSagas(Assembly.GetExecutingAssembly());
                                         busConfigurator.AddSagaStateMachine<FlightStateMachine, FlightState>().MartenRepository(configuration.GetConnectionString("db"));
@@ -99,6 +101,8 @@
                                         busConfigurator.UsingRabbitMq(
                                             (registrationContext, rabbitConfigurator) =>
                                                 {
+                                                    rabbitConfigurator.UseDelayedExchangeMessageScheduler();
+
                                                     rabbitConfigurator.Host(
                                                         new Uri(busSettings.Host),
                                                         hostConfigurator =>
@@ -114,7 +118,9 @@
                                                                 endpointConfigurator.ConfigureConsumers(registrationContext);
                                                                 endpointConfigurator.ConfigureSagas(registrationContext);
 
-                                                                endpointConfigurator.UseMessageRetry(p => p.SetRetryPolicy(f => f.Interval(5, TimeSpan.FromSeconds(1))));
+                                                                endpointConfigurator.PrefetchCount = 1;
+
+                                                                endpointConfigurator.UseMessageRetry(p => p.SetRetryPolicy(f => f.Interval(10, TimeSpan.FromSeconds(1))));
                                                             });
                                                 });
                                     });

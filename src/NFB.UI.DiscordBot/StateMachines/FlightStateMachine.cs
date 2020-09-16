@@ -1,19 +1,23 @@
 ﻿namespace NFB.UI.DiscordBot.StateMachines
 {
+    using System;
     using System.Linq;
     using System.Threading.Tasks;
 
     using Automatonymous;
 
     using Discord;
-    using Discord.Rest;
     using Discord.WebSocket;
+
+    using MassTransit;
 
     using Microsoft.Extensions.Logging;
 
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
+    using NFB.UI.DiscordBot.Events;
     using NFB.UI.DiscordBot.Extensions;
+    using NFB.UI.DiscordBot.Models;
     using NFB.UI.DiscordBot.Persistence;
     using NFB.UI.DiscordBot.States;
 
@@ -65,6 +69,9 @@
             this.Event(() => this.UserLeftVoiceChannelEvent, x => x.CorrelateBy(p => p.VoiceChannelId, p => p.Message.ChannelId.ToGuid()));
             this.Event(() => this.VatsimPilotUpdatedEvent, x => x.CorrelateBy((state, context) => state.UsersInVoiceChannel.Contains(context.Message.UserId.ToGuid())));
 
+            // Schedules
+            this.Schedule(() => this.UpdatePilotDataInMessage, p => p.UpdatePilotDataInMessageToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
+
             // Work flow
             this.Initially(
                 this.When(this.FlightCreatedEvent)
@@ -101,7 +108,7 @@
                             {
                                 var guild = this.GetSocketGuildServer();
                                 var category = this.GetCategory("Flights");
-                                RestVoiceChannel voiceChannel = null;
+                                IVoiceChannel voiceChannel = null;
                                 if (category != null)
                                 {
                                     voiceChannel = await guild.CreateVoiceChannelAsync(
@@ -117,14 +124,15 @@
 
                                     if (message != null)
                                     {
-                                        var socketMessage = message;
+                                        var socketMessage = message as SocketUserMessage;
                                         var embed = await FlightActiveEmbed.CreateEmbed(
                                                         context.Instance.Origin,
                                                         context.Instance.Destination,
                                                         context.Data.StartTime,
-                                                        voiceChannel);
+                                                        voiceChannel,
+                                                        context.Instance.VatsimPilotData);
 
-                                        await socketMessage.ModifyAsync(p => p.Embed = embed);
+                                        if (socketMessage != null) await socketMessage.ModifyAsync(p => p.Embed = embed);
                                     }
                                 }
                             })
@@ -143,17 +151,24 @@
 
                                 if (message != null)
                                 {
-                                    var socketMessage = message;
+                                    var socketMessage = message as SocketUserMessage;
                                     var embed = await FlightActiveEmbed.CreateEmbed(
                                                     context.Instance.Origin,
                                                     context.Instance.Destination,
                                                     context.Instance.StartTime,
-                                                    (IGuildChannel)voiceChannel);
+                                                    (IGuildChannel)voiceChannel,
+                                                    context.Instance.VatsimPilotData);
 
-                                    await socketMessage.ModifyAsync(p => p.Embed = embed);
+                                    if (socketMessage != null) await socketMessage.ModifyAsync(p => p.Embed = embed);
                                 }
                             }
+                        }).Schedule(
+                        this.UpdatePilotDataInMessage,
+                        context => context.Init<UpdatePilotDataInMessage>(new UpdatePilotDataInMessage
+                        {
+                            Id = context.Instance.CorrelationId
                         }),
+                        context => TimeSpan.FromSeconds(5)),
                 this.When(this.UserLeftVoiceChannelEvent)
                     .Then(context => context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId.ToGuid()))
                     .ThenAsync(async (context) =>
@@ -165,28 +180,87 @@
 
                                 if (message != null)
                                 {
-                                    var socketMessage = message;
+                                    var socketMessage = message as SocketUserMessage;
                                     var embed = await FlightActiveEmbed.CreateEmbed(
                                                     context.Instance.Origin,
                                                     context.Instance.Destination,
                                                     context.Instance.StartTime,
-                                                    (IGuildChannel)voiceChannel);
+                                                    (IGuildChannel)voiceChannel,
+                                                    context.Instance.VatsimPilotData);
 
-                                    await socketMessage.ModifyAsync(p => p.Embed = embed);
+                                    if (socketMessage != null) await socketMessage.ModifyAsync(p => p.Embed = embed);
+                                }
+
+                                var removedPilot = context.Instance.VatsimPilotData.FirstOrDefault(p => p.UserId == context.Data.UserId);
+                                if (removedPilot != null)
+                                {
+                                    context.Instance.VatsimPilotData.Remove(removedPilot);
                                 }
                             }
-                        }),
-                this.When(this.VatsimPilotUpdatedEvent).ThenAsync(
-                    async (context) =>
+                        }).Schedule(
+                        this.UpdatePilotDataInMessage,
+                        context => context.Init<UpdatePilotDataInMessage>(new UpdatePilotDataInMessage
                         {
-                            var server = client.Guilds.First();
-                            var category = server?.CategoryChannels.First(p => p.Name == "flights");
+                            Id = context.Instance.CorrelationId
+                        }),
+                        context => TimeSpan.FromSeconds(5)),
+                this.When(this.VatsimPilotUpdatedEvent)
+                    .Then((context) =>
+                        {
+                            var pilotData = context.Instance.VatsimPilotData.FirstOrDefault(p => p.UserId == context.Data.UserId);
 
-                            if (category?.Channels.First(p => p.Name == "flights") is IMessageChannel channel)
+                            if (pilotData == null)
                             {
-                                await channel.SendMessageAsync($"{context.Data.VatsimId} -> {context.Data.Longitude} {context.Data.Latitude}");
+                                // New pilot information coming through from vatsim
+                                context.Instance.VatsimPilotData.Add(new VatsimPilotData
+                                {
+                                    DestinationAirport = context.Data.DestinationAirport,
+                                    Latitude = context.Data.Latitude,
+                                    Longitude = context.Data.Longitude,
+                                    OriginAirport = context.Data.OriginAirport,
+                                    UserId = context.Data.UserId,
+                                    VatsimId = context.Data.VatsimId
+                                });
                             }
-                        }));
+                            else
+                            {
+                                // Update existing pilot data.
+                                pilotData.DestinationAirport = context.Data.DestinationAirport;
+                                pilotData.Latitude = context.Data.Latitude;
+                                pilotData.Longitude = context.Data.Longitude;
+                                pilotData.OriginAirport = context.Data.OriginAirport;
+                            }
+                        })
+                    .Schedule(
+                        this.UpdatePilotDataInMessage,
+                        context => context.Init<UpdatePilotDataInMessage>(new UpdatePilotDataInMessage
+                        {
+                            Id = context.Instance.CorrelationId
+                        }),
+                        context => TimeSpan.FromSeconds(5)),
+                this.When(this.UpdatePilotDataInMessage.Received)
+                    .ThenAsync(
+                        async (context) =>
+                            {
+                                if (context.Instance.MessageId != null)
+                                {
+                                    var message = await this.GetMessage("Flights", "flights", (ulong)context.Instance.MessageId);
+                                    var voiceChannel = this.GetVoiceChannel("Flights", context.Instance.VoiceChannelUlongId);
+
+                                    if (message != null)
+                                    {
+                                        var socketMessage = message as IUserMessage;
+                                        var embed = await FlightActiveEmbed.CreateEmbed(
+                                                        context.Instance.Origin,
+                                                        context.Instance.Destination,
+                                                        context.Instance.StartTime,
+                                                        (IGuildChannel)voiceChannel,
+                                                        context.Instance.VatsimPilotData);
+
+                                        if (socketMessage != null) await socketMessage.ModifyAsync(p => p.Embed = embed);
+                                    }
+                                }
+                            }));
         }
 
         #endregion Public Constructors
@@ -212,6 +286,11 @@
         /// Gets or sets the flight starting event.
         /// </summary>
         public Event<FlightStartingEvent> FlightStartingEvent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the update pilot data in message.
+        /// </summary>
+        public Schedule<FlightState, UpdatePilotDataInMessage> UpdatePilotDataInMessage { get; set; }
 
         /// <summary>
         /// Gets or sets the user joined voice channel event.
@@ -300,7 +379,7 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        private async Task<RestUserMessage> GetMessage(string categoryName, string channelName, ulong messageId)
+        private async Task<IMessage> GetMessage(string categoryName, string channelName, ulong messageId)
         {
             var channel = this.GetChannel(categoryName, channelName);
 
@@ -317,7 +396,7 @@
                 this.logger.LogDebug($"No message with {messageId} found in {channelName} channel.");
             }
 
-            return message as RestUserMessage;
+            return message;
         }
 
         /// <summary>
