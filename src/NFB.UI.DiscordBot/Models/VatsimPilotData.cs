@@ -1,11 +1,18 @@
 ﻿namespace NFB.UI.DiscordBot.Models
 {
+    using Discord;
+
     /// <summary>
     /// The vatsim pilot data.
     /// </summary>
     public class VatsimPilotData
     {
         #region Public Properties
+
+        /// <summary>
+        /// Gets or sets the assigned color.
+        /// </summary>
+        public uint AssignedColor { get; set; }
 
         /// <summary>
         /// Gets or sets the destination airport.

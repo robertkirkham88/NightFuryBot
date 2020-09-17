@@ -16,6 +16,11 @@
         #region Public Properties
 
         /// <summary>
+        /// Gets or sets the available colors.
+        /// </summary>
+        public IList<uint> AvailableColors { get; set; } = new List<uint>();
+
+        /// <summary>
         /// Gets or sets the correlation id.
         /// </summary>
         public Guid CorrelationId { get; set; }

@@ -1,5 +1,6 @@
 ﻿namespace NFB.Service.Vatsim.Services
 {
+    using System;
     using System.Linq;
     using System.Net;
     using System.Threading;
@@ -9,6 +10,7 @@
 
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Logging;
 
     using Newtonsoft.Json;
 
@@ -36,6 +38,11 @@
         private readonly VatsimDbContext database;
 
         /// <summary>
+        /// The logger.
+        /// </summary>
+        private readonly ILogger<PilotService> logger;
+
+        /// <summary>
         /// The timer.
         /// </summary>
         private readonly Timer timer;
@@ -53,10 +60,14 @@
         /// <param name="bus">
         /// The bus.
         /// </param>
-        public PilotService(VatsimDbContext database, IBusControl bus)
+        /// <param name="logger">
+        /// The logger.
+        /// </param>
+        public PilotService(VatsimDbContext database, IBusControl bus, ILogger<PilotService> logger)
         {
             this.database = database;
             this.bus = bus;
+            this.logger = logger;
             this.timer = new Timer
             {
                 AutoReset = true,
@@ -116,26 +127,35 @@
         /// </param>
         private async void UpdatePilotInformation(object source, System.Timers.ElapsedEventArgs e)
         {
-            var jsonData = new WebClient().DownloadString("http://cluster.data.vatsim.net/vatsim-data.json");
-            var databasePilotsIds = await this.database.Pilots.ToListAsync();
-            var onlinePilots = JsonConvert.DeserializeObject<PilotRootModel>(jsonData).Pilots;
-
-            foreach (var pilot in databasePilotsIds)
+            try
             {
-                var isOnline = onlinePilots.FirstOrDefault(p => p.Cid == pilot.VatsimId);
+                var jsonData = new WebClient().DownloadString("http://cluster.data.vatsim.net/vatsim-data.json");
 
-                if (isOnline != null)
+                var databasePilotsIds = await this.database.Pilots.ToListAsync();
+                var onlinePilots = JsonConvert.DeserializeObject<PilotRootModel>(jsonData).Pilots;
+
+                foreach (var pilot in databasePilotsIds)
                 {
-                    await this.bus.Publish(new VatsimPilotUpdatedEvent
+                    var isOnline = onlinePilots.FirstOrDefault(p => p.Cid == pilot.VatsimId);
+
+                    if (isOnline != null)
                     {
-                        DestinationAirport = isOnline.PlannedDestinationAirport,
-                        OriginAirport = isOnline.PlannedDepartureAirport,
-                        Latitude = isOnline.Latitude,
-                        Longitude = isOnline.Longitude,
-                        VatsimId = isOnline.Cid,
-                        UserId = ulong.Parse(pilot.UserId)
-                    });
+                        await this.bus.Publish(
+                            new VatsimPilotUpdatedEvent
+                            {
+                                DestinationAirport = isOnline.PlannedDestinationAirport,
+                                OriginAirport = isOnline.PlannedDepartureAirport,
+                                Latitude = isOnline.Latitude,
+                                Longitude = isOnline.Longitude,
+                                VatsimId = isOnline.Cid,
+                                UserId = ulong.Parse(pilot.UserId)
+                            });
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogWarning(ex.Message);
             }
         }
 

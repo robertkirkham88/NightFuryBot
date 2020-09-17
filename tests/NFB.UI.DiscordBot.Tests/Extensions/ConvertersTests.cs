@@ -45,6 +45,22 @@
             Assert.Equal(result, (ulong)365241212057419776);
         }
 
+        /// <summary>
+        /// The uri well formed.
+        /// </summary>
+        [Fact]
+        public void UriWellFormed()
+        {
+            // Arrange
+            var uri = "https://open.mapquestapi.com/staticmap/v5/map?locations=53.365,-2.27089%7Cmarker-start%7C%7C51.4700,-0.4543%7Cmarker-end%7C%7C3.6065,-153.35879%7Cmarker-A&key=z8WHXvhF50CDEdE3GOrleDlWtwOOZVjG";
+
+            // Act
+            var isWellFormed = Uri.IsWellFormedUriString(uri, UriKind.Absolute);
+
+            // Assert
+            Assert.True(isWellFormed);
+        }
+
         #endregion Public Methods
     }
 }

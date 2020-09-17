@@ -98,7 +98,7 @@
                 await context.RespondAsync(new CreateFlightCommandSuccessResponse { Id = databaseEntity.Entity.Id });
                 await context.Publish(new FlightCreatedEvent
                 {
-                    Destination = new AirportEntityDto { ICAO = destinationAirport.ICAO, Latitude = destinationAirport.ICAO, Longitude = destinationAirport.Longitude, Name = destinationAirport.Name },
+                    Destination = new AirportEntityDto { ICAO = destinationAirport.ICAO, Latitude = destinationAirport.Latitude, Longitude = destinationAirport.Longitude, Name = destinationAirport.Name },
                     Origin = new AirportEntityDto { ICAO = originAirport.ICAO, Latitude = originAirport.Latitude, Longitude = originAirport.Longitude, Name = originAirport.Name },
                     StartTime = databaseEntity.Entity.StartTime,
                     Id = databaseEntity.Entity.Id

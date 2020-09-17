@@ -1,6 +1,7 @@
 ﻿namespace NFB.UI.DiscordBot.StateMachines
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
 
@@ -56,6 +57,7 @@
         /// </param>
         public FlightStateMachine(DiscordSocketClient client, DiscordBotDbContext database, ILogger<FlightStateMachine> logger)
         {
+            // Initialize
             this.client = client;
             this.logger = logger;
 
@@ -97,6 +99,18 @@
                                 context.Instance.Destination = context.Data.Destination;
                                 context.Instance.Origin = context.Data.Origin;
                                 context.Instance.StartTime = context.Data.StartTime;
+
+                                context.Instance.AvailableColors = new List<uint>
+                                                                       {
+                                                                                      Color.Blue.RawValue,
+                                                                                      Color.Gold.RawValue,
+                                                                                      Color.Magenta.RawValue,
+                                                                                      Color.Teal.RawValue,
+                                                                                      Color.Orange.RawValue,
+                                                                                      Color.Purple.RawValue,
+                                                                                      Color.LightOrange.RawValue,
+                                                                                      Color.LightGrey.RawValue
+                                                                                  };
                             })
                 .TransitionTo(this.Created));
 
@@ -109,7 +123,7 @@
                                 var guild = this.GetSocketGuildServer();
                                 var category = this.GetCategory("Flights");
                                 IVoiceChannel voiceChannel = null;
-                                if (category != null)
+                                if (category != null && context.Instance.VoiceChannelId == null)
                                 {
                                     voiceChannel = await guild.CreateVoiceChannelAsync(
                                                            $"{context.Data.Origin}-{context.Data.Destination}-{context.Data.Id.ToString().Substring(0, 3)}",
@@ -162,7 +176,8 @@
                                     if (socketMessage != null) await socketMessage.ModifyAsync(p => p.Embed = embed);
                                 }
                             }
-                        }).Schedule(
+                        })
+                    .Schedule(
                         this.UpdatePilotDataInMessage,
                         context => context.Init<UpdatePilotDataInMessage>(new UpdatePilotDataInMessage
                         {
@@ -194,10 +209,14 @@
                                 var removedPilot = context.Instance.VatsimPilotData.FirstOrDefault(p => p.UserId == context.Data.UserId);
                                 if (removedPilot != null)
                                 {
+                                    if (removedPilot.AssignedColor != 3447003)
+                                        context.Instance.AvailableColors.Add(removedPilot.AssignedColor);
+
                                     context.Instance.VatsimPilotData.Remove(removedPilot);
                                 }
                             }
-                        }).Schedule(
+                        })
+                    .Schedule(
                         this.UpdatePilotDataInMessage,
                         context => context.Init<UpdatePilotDataInMessage>(new UpdatePilotDataInMessage
                         {
@@ -211,6 +230,17 @@
 
                             if (pilotData == null)
                             {
+                                // Pilot color.
+                                var chosenColorUint = context.Instance.AvailableColors.FirstOrDefault();
+                                if (chosenColorUint == default)
+                                {
+                                    chosenColorUint = Color.DarkBlue.RawValue;
+                                }
+                                else
+                                {
+                                    context.Instance.AvailableColors.Remove(chosenColorUint);
+                                }
+
                                 // New pilot information coming through from vatsim
                                 context.Instance.VatsimPilotData.Add(new VatsimPilotData
                                 {
@@ -219,7 +249,8 @@
                                     Longitude = context.Data.Longitude,
                                     OriginAirport = context.Data.OriginAirport,
                                     UserId = context.Data.UserId,
-                                    VatsimId = context.Data.VatsimId
+                                    VatsimId = context.Data.VatsimId,
+                                    AssignedColor = chosenColorUint
                                 });
                             }
                             else
