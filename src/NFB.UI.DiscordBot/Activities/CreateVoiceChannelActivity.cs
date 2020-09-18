@@ -89,6 +89,8 @@
             // Update context data
             context.Instance.VoiceChannelUlongId = voiceChannel.Id;
             context.Instance.VoiceChannelId = voiceChannel.Id.ToGuid();
+
+            await next.Execute(context);
         }
 
         /// <summary>
@@ -144,6 +146,8 @@
 
                 await channel.DeleteAsync();
             }
+
+            await next.Faulted(context);
         }
 
         /// <summary>

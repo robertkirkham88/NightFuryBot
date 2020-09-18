@@ -82,6 +82,8 @@
                 context.Instance.VoiceChannelUlongId,
                 context.Instance.StartTime,
                 context.Instance.VatsimPilotData);
+
+            await next.Execute(context);
         }
 
         /// <summary>
@@ -105,6 +107,8 @@
                 context.Instance.VoiceChannelUlongId,
                 context.Instance.StartTime,
                 context.Instance.VatsimPilotData);
+
+            await next.Execute(context);
         }
 
         /// <summary>
@@ -128,6 +132,8 @@
                 context.Instance.VoiceChannelUlongId,
                 context.Instance.StartTime,
                 context.Instance.VatsimPilotData);
+
+            await next.Execute(context);
         }
 
         /// <summary>
@@ -151,6 +157,8 @@
                 context.Instance.VoiceChannelUlongId,
                 context.Instance.StartTime,
                 context.Instance.VatsimPilotData);
+
+            await next.Execute(context);
         }
 
         /// <summary>
@@ -294,10 +302,12 @@
             var guild = this.client.Guilds.FirstOrDefault();
             var category = guild?.CategoryChannels.FirstOrDefault(p => p.Name == "flights");
 
-            if (!(category?.Channels.FirstOrDefault(p => p.Name == "flights") is SocketTextChannel textChannel))
+            var textChannel = category?.Channels.FirstOrDefault(p => p.Name == "flights") as SocketTextChannel;
+            if (textChannel == null)
                 throw new InvalidOperationException($"Unable to find a channel named 'flights'.");
 
-            if (!(category.Channels.FirstOrDefault(p => p.Id == voiceChannelId) is SocketVoiceChannel voiceChannel))
+            var voiceChannel = category.Channels.FirstOrDefault(p => p.Id == voiceChannelId) as SocketVoiceChannel;
+            if (voiceChannel == null)
                 throw new InvalidOperationException($"Unable to find a channel named 'flights'.");
 
             // Edit the message
@@ -308,10 +318,11 @@
                             voiceChannel,
                             vatsimData);
 
-            if (!(await textChannel.GetMessageAsync((ulong)messageId) is RestUserMessage message))
+            var restMessage = await textChannel.GetMessageAsync((ulong)messageId) as RestUserMessage;
+            if (restMessage == null)
                 throw new InvalidOperationException($"Unable to find a message with ID {messageId}.");
 
-            await message.ModifyAsync(p => p.Embed = embed);
+            await restMessage.ModifyAsync(p => p.Embed = embed);
         }
 
         #endregion Private Methods

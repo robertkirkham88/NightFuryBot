@@ -104,6 +104,8 @@
                                                        Color.LightOrange.RawValue,
                                                        Color.LightGrey.RawValue
                                                    };
+
+            await next.Execute(context);
         }
 
         /// <summary>
@@ -139,6 +141,8 @@
                 var message = await channel.GetMessageAsync(messageId);
                 await message.DeleteAsync();
             }
+
+            await next.Faulted(context);
         }
 
         /// <summary>

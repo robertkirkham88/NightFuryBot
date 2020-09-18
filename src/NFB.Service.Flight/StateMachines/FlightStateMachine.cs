@@ -57,7 +57,7 @@
                             {
                                 var startingTime = context.Data.StartTime.Add(TimeSpan.FromMinutes(-15));
 
-                                return startingTime <= DateTime.UtcNow ? DateTime.UtcNow.AddSeconds(3) : startingTime; // Slight delay due to message ordering.
+                                return startingTime <= DateTime.UtcNow ? DateTime.UtcNow.AddSeconds(5) : startingTime; // Slight delay due to message ordering.
                             }));
 
             this.During(
@@ -82,7 +82,7 @@
                             {
                                 var startTime = context.Data.StartTime;
 
-                                return startTime <= DateTime.UtcNow ? DateTime.UtcNow.AddSeconds(3) : startTime; // Slight delay due to message ordering.
+                                return startTime <= DateTime.UtcNow ? DateTime.UtcNow.AddSeconds(5) : startTime; // Slight delay due to message ordering.
                             }));
 
             this.During(
