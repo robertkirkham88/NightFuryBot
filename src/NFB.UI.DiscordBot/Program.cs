@@ -120,7 +120,7 @@
 
                                                                 endpointConfigurator.PrefetchCount = 1;
 
-                                                                endpointConfigurator.UseMessageRetry(p => p.SetRetryPolicy(f => f.Interval(10, TimeSpan.FromSeconds(1))));
+                                                                endpointConfigurator.UseMessageRetry(p => p.SetRetryPolicy(f => f.Interval(30, TimeSpan.FromSeconds(1))));
                                                             });
                                                 });
                                     });

@@ -78,7 +78,7 @@
         /// <summary>
         /// Gets or sets the voice channel ulong id.
         /// </summary>
-        public ulong VoiceChannelUlongId { get; set; }
+        public ulong? VoiceChannelUlongId { get; set; }
 
         #endregion Public Properties
     }

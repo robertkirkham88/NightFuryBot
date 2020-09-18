@@ -10,15 +10,11 @@
 
     using MassTransit.Testing;
 
-    using Microsoft.EntityFrameworkCore;
-    using Microsoft.Extensions.Logging.Abstractions;
-
     using Moq;
 
     using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Extensions;
-    using NFB.UI.DiscordBot.Persistence;
     using NFB.UI.DiscordBot.StateMachines;
     using NFB.UI.DiscordBot.States;
     using NFB.UI.DiscordBot.Tests.TestFactory;
@@ -31,30 +27,6 @@
     /// </summary>
     public class FlightStateMachineTests
     {
-        #region Private Fields
-
-        /// <summary>
-        /// The database.
-        /// </summary>
-        private readonly DiscordBotDbContext database;
-
-        #endregion Private Fields
-
-        #region Public Constructors
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FlightStateMachineTests"/> class.
-        /// </summary>
-        public FlightStateMachineTests()
-        {
-            var options = new DbContextOptionsBuilder<DiscordBotDbContext>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString())
-                .Options;
-            this.database = new DiscordBotDbContext(options);
-        }
-
-        #endregion Public Constructors
-
         #region Public Methods
 
         /// <summary>
@@ -70,7 +42,7 @@
             mockDiscord.SetupGet(p => p.Guilds).Returns(new List<SocketGuild>(new SocketGuild[1]));
 
             var harness = new DiscordBotTestBus();
-            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database, new NullLogger<FlightStateMachine>());
+            var stateMachine = new FlightStateMachine();
             var saga = harness.StateMachineSaga<FlightState, FlightStateMachine>(stateMachine);
             var id = Guid.NewGuid();
 
@@ -104,7 +76,7 @@
             mockDiscord.SetupGet(p => p.Guilds).Returns(new List<SocketGuild>(new SocketGuild[1]));
 
             var harness = new DiscordBotTestBus();
-            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database, new NullLogger<FlightStateMachine>());
+            var stateMachine = new FlightStateMachine();
             var saga = harness.StateMachineSaga<FlightState, FlightStateMachine>(stateMachine);
             var id = Guid.NewGuid();
 
@@ -139,7 +111,7 @@
             mockDiscord.SetupGet(p => p.Guilds).Returns(new List<SocketGuild>(new SocketGuild[1]));
 
             var harness = new DiscordBotTestBus();
-            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database, new NullLogger<FlightStateMachine>());
+            var stateMachine = new FlightStateMachine();
             var saga = harness.StateMachineSaga<FlightState, FlightStateMachine>(stateMachine);
             var id = Guid.NewGuid();
 
@@ -180,7 +152,7 @@
             mockDiscord.SetupGet(p => p.Guilds).Returns(new List<SocketGuild>(new SocketGuild[1]));
 
             var harness = new DiscordBotTestBus();
-            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database, new NullLogger<FlightStateMachine>());
+            var stateMachine = new FlightStateMachine();
             var saga = harness.StateMachineSaga<FlightState, FlightStateMachine>(stateMachine);
             var id = Guid.NewGuid();
 
@@ -226,7 +198,7 @@
             mockDiscord.SetupGet(p => p.Guilds).Returns(new List<SocketGuild>(new SocketGuild[1]));
 
             var harness = new DiscordBotTestBus();
-            var stateMachine = new FlightStateMachine(mockDiscord.Object, this.database, new NullLogger<FlightStateMachine>());
+            var stateMachine = new FlightStateMachine();
             var saga = harness.StateMachineSaga<FlightState, FlightStateMachine>(stateMachine);
             var id = Guid.NewGuid();
 
