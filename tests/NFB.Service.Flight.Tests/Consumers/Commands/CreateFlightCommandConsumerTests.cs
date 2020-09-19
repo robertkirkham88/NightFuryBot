@@ -1,4 +1,4 @@
-﻿namespace NFB.Service.Flight.Tests.Consumers.Co
+﻿namespace NFB.Service.Flight.Tests.Consumers.Commands
 {
     using System;
     using System.Collections.Generic;
@@ -57,8 +57,8 @@
             {
                 Airports = new List<AirportModel>
                  {
-                     new AirportModel { ICAO = "EGCC", Name = "Manchester", Longitude = "50.4", Latitude = "-50.4" },
-                     new AirportModel { ICAO = "EGLL", Name = "London", Longitude = "70.4", Latitude = "-70.4" },
+                     new AirportModel { ICAO = "EGCC", Name = "Manchester", Longitude = 50.4, Latitude = -50.4 },
+                     new AirportModel { ICAO = "EGLL", Name = "London", Longitude = 70.4, Latitude = -70.4 },
                  }
             });
 

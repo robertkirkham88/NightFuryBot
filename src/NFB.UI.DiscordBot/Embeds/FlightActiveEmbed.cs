@@ -42,7 +42,7 @@
         {
             var embedBuilder = new EmbedBuilder { Color = Color.Green, Title = $"{origin.Name} to {destination.Name}" };
             var usersInChannel = await voiceChannel.GetUsersAsync().FlattenAsync();
-            var pilotsText = $"Join {voiceChannel.Name}\r\n" + string.Join(
+            var pilotsText = $"Join voice channel: {voiceChannel.Name}\r\n" + string.Join(
                                  "\r\n",
                                  usersInChannel.Select(p => $"- {p.Nickname ?? p.Username}"));
 
