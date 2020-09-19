@@ -116,6 +116,8 @@
                                                                 endpointConfigurator.PrefetchCount = 16;
 
                                                                 endpointConfigurator.UseMessageRetry(p => p.SetRetryPolicy(f => f.Interval(3, TimeSpan.FromSeconds(1))));
+
+                                                                endpointConfigurator.UseInMemoryOutbox();
                                                             });
                                                 });
                                     });

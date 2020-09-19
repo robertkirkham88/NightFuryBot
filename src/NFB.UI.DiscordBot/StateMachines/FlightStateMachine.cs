@@ -1,6 +1,7 @@
 ﻿namespace NFB.UI.DiscordBot.StateMachines
 {
     using System;
+    using System.Threading;
 
     using Automatonymous;
 
@@ -8,8 +9,8 @@
 
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Activities;
-    using NFB.UI.DiscordBot.Events;
     using NFB.UI.DiscordBot.Extensions;
+    using NFB.UI.DiscordBot.Schedules;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
@@ -25,11 +26,13 @@
         public FlightStateMachine()
         {
             // Initialize
+            this.SetCompletedWhenFinalized();
 
             // Instance
             this.InstanceState(p => p.CurrentState);
 
             // Events
+            this.Event(() => this.FlightCompletedEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.FlightCreatedEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.FlightStartingEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.UserJoinedVoiceChannelEvent, x => x.CorrelateBy(p => p.VoiceChannelId, p => p.Message.ChannelId.ToGuid()));
@@ -37,7 +40,8 @@
             this.Event(() => this.VatsimPilotUpdatedEvent, x => x.CorrelateBy((state, context) => state.UsersInVoiceChannel.Contains(context.Message.UserId.ToGuid())));
 
             // Schedules
-            this.Schedule(() => this.UpdatePilotDataInMessage, p => p.UpdatePilotDataInMessageToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
+            this.Schedule(() => this.UpdatePilotDataSchedule, p => p.UpdatePilotDataInMessageToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
+            this.Schedule(() => this.CheckFlightCompletedSchedule, p => p.CheckFlightCompletedToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
 
             // Work flow
             this.Initially(
@@ -52,11 +56,21 @@
                 this.When(this.FlightStartingEvent)
                     .Activity(x => x.OfType<CreateVoiceChannelActivity>())
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
+                    .Schedule(
+                        this.CheckFlightCompletedSchedule,
+                        context => context.Init<CheckFlightCompletedScheduleMessage>(
+                            new CheckFlightCompletedScheduleMessage { Id = context.Instance.CorrelationId }),
+                        context => context.Instance.StartTime.AddHours(1))
                     .TransitionTo(this.Active),
                 this.When(this.FlightCreatedEvent)
                     .Activity(x => x.OfType<CreateDiscordChannelActivity>())
                     .Activity(x => x.OfType<CreateVoiceChannelActivity>())
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
+                    .Schedule(
+                        this.CheckFlightCompletedSchedule,
+                        context => context.Init<CheckFlightCompletedScheduleMessage>(
+                            new CheckFlightCompletedScheduleMessage { Id = context.Instance.CorrelationId }),
+                        context => context.Instance.StartTime.AddHours(1))
                     .TransitionTo(this.Active));
 
             this.During(
@@ -65,32 +79,41 @@
                     .Then(context => context.Instance.UsersInVoiceChannel.Add(context.Data.UserId.ToGuid()))
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
                     .Schedule(
-                        this.UpdatePilotDataInMessage,
-                        context => context.Init<UpdatePilotDataInMessage>(new UpdatePilotDataInMessage
-                        {
-                            Id = context.Instance.CorrelationId
-                        }),
-                        context => TimeSpan.FromSeconds(5)),
+                        this.UpdatePilotDataSchedule,
+                        context => context.Init<UpdatePilotDataScheduleMessage>(
+                            new UpdatePilotDataScheduleMessage { Id = context.Instance.CorrelationId }),
+                        context => TimeSpan.FromSeconds(5))
+                    .Unschedule(this.CheckFlightCompletedSchedule),
                 this.When(this.UserLeftVoiceChannelEvent)
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
                     .Schedule(
-                        this.UpdatePilotDataInMessage,
-                        context => context.Init<UpdatePilotDataInMessage>(new UpdatePilotDataInMessage
-                        {
-                            Id = context.Instance.CorrelationId
-                        }),
-                        context => TimeSpan.FromSeconds(5)),
+                        this.UpdatePilotDataSchedule,
+                        context => context.Init<UpdatePilotDataScheduleMessage>(
+                            new UpdatePilotDataScheduleMessage { Id = context.Instance.CorrelationId }),
+                        context => TimeSpan.FromSeconds(5))
+                    .Schedule(
+                        this.CheckFlightCompletedSchedule,
+                        context => context.Init<CheckFlightCompletedScheduleMessage>(
+                            new CheckFlightCompletedScheduleMessage { Id = context.Instance.CorrelationId }),
+                        context => TimeSpan.FromMinutes(30)),
                 this.When(this.VatsimPilotUpdatedEvent)
                     .Activity(x => x.OfType<UpdateVatsimPilotDataActivity>())
                     .Schedule(
-                        this.UpdatePilotDataInMessage,
-                        context => context.Init<UpdatePilotDataInMessage>(new UpdatePilotDataInMessage
-                        {
-                            Id = context.Instance.CorrelationId
-                        }),
+                        this.UpdatePilotDataSchedule,
+                        context => context.Init<UpdatePilotDataScheduleMessage>(
+                            new UpdatePilotDataScheduleMessage { Id = context.Instance.CorrelationId }),
                         context => TimeSpan.FromSeconds(5)),
-                this.When(this.UpdatePilotDataInMessage.Received)
-                    .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>()));
+                this.When(this.UpdatePilotDataSchedule.Received)
+                    .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>()),
+                this.When(this.CheckFlightCompletedSchedule.Received)
+                    .Activity(x => x.OfType<CheckFlightCompletedActivity>()),
+                this.When(this.FlightCompletedEvent)
+                    .Then(
+                        context =>
+                            {
+                                Thread.Sleep(TimeSpan.FromSeconds(3));
+                            })
+                    .Finalize());
         }
 
         #endregion Public Constructors
@@ -103,9 +126,19 @@
         public State Active { get; set; }
 
         /// <summary>
+        /// Gets or sets the update voice channel users.
+        /// </summary>
+        public Schedule<FlightState, CheckFlightCompletedScheduleMessage> CheckFlightCompletedSchedule { get; set; }
+
+        /// <summary>
         /// Gets or sets the created.
         /// </summary>
         public State Created { get; set; }
+
+        /// <summary>
+        /// Gets or sets the flight completed event.
+        /// </summary>
+        public Event<FlightCompletedEvent> FlightCompletedEvent { get; set; }
 
         /// <summary>
         /// Gets or sets the flight created event.
@@ -120,7 +153,7 @@
         /// <summary>
         /// Gets or sets the update pilot data in message.
         /// </summary>
-        public Schedule<FlightState, UpdatePilotDataInMessage> UpdatePilotDataInMessage { get; set; }
+        public Schedule<FlightState, UpdatePilotDataScheduleMessage> UpdatePilotDataSchedule { get; set; }
 
         /// <summary>
         /// Gets or sets the user joined voice channel event.

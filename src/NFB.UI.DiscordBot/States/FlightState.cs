@@ -25,6 +25,11 @@
         public IList<uint> AvailableColors { get; set; } = new List<uint>();
 
         /// <summary>
+        /// Gets or sets the check flight completed token.
+        /// </summary>
+        public Guid? CheckFlightCompletedToken { get; set; }
+
+        /// <summary>
         /// Gets or sets the correlation id.
         /// </summary>
         [BsonId]
@@ -41,9 +46,9 @@
         public AirportEntityDto Destination { get; set; }
 
         /// <summary>
-        /// Gets or sets the flight active schedule token.
+        /// Gets or sets a value indicating whether flight completed.
         /// </summary>
-        public Guid? FlightActiveScheduleToken { get; set; }
+        public bool FlightCompleted { get; set; }
 
         /// <summary>
         /// Gets or sets the message id.

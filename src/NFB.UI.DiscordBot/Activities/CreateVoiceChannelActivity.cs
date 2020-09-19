@@ -83,7 +83,7 @@
 
             // Create the vault channel
             var voiceChannel = await guild.CreateVoiceChannelAsync(
-                                   $"{destination.ICAO}-{origin.ICAO}-{context.Instance.CorrelationId.ToString().Substring(0, 3)}",
+                                   $"{origin.ICAO}-{destination.ICAO}-{context.Instance.CorrelationId.ToString().Substring(0, 3)}",
                                    properties => { properties.CategoryId = category.Id; });
 
             // Update context data

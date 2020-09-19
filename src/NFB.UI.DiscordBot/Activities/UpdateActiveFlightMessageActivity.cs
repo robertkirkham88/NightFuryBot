@@ -15,15 +15,15 @@
     using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
-    using NFB.UI.DiscordBot.Events;
     using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.Models;
+    using NFB.UI.DiscordBot.Schedules;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
     /// The update active flight message.
     /// </summary>
-    public class UpdateActiveFlightMessageActivity : Activity<FlightState, FlightStartingEvent>, Activity<FlightState, UserJoinedVoiceChannelEvent>, Activity<FlightState, UserLeftVoiceChannelEvent>, Activity<FlightState, UpdatePilotDataInMessage>, Activity<FlightState, FlightCreatedEvent>
+    public class UpdateActiveFlightMessageActivity : Activity<FlightState, FlightStartingEvent>, Activity<FlightState, UserJoinedVoiceChannelEvent>, Activity<FlightState, UserLeftVoiceChannelEvent>, Activity<FlightState, UpdatePilotDataScheduleMessage>, Activity<FlightState, FlightCreatedEvent>
     {
         #region Private Fields
 
@@ -154,7 +154,7 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public async Task Execute(BehaviorContext<FlightState, UpdatePilotDataInMessage> context, Behavior<FlightState, UpdatePilotDataInMessage> next)
+        public async Task Execute(BehaviorContext<FlightState, UpdatePilotDataScheduleMessage> context, Behavior<FlightState, UpdatePilotDataScheduleMessage> next)
         {
             await this.UpdateChannelMessage(
                 context.Instance.Origin,
@@ -270,7 +270,7 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public Task Faulted<TException>(BehaviorExceptionContext<FlightState, UpdatePilotDataInMessage, TException> context, Behavior<FlightState, UpdatePilotDataInMessage> next)
+        public Task Faulted<TException>(BehaviorExceptionContext<FlightState, UpdatePilotDataScheduleMessage, TException> context, Behavior<FlightState, UpdatePilotDataScheduleMessage> next)
                     where TException : Exception
         {
             return next.Faulted(context);

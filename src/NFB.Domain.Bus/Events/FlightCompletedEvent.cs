@@ -1,11 +1,13 @@
-﻿namespace NFB.UI.DiscordBot.Events
+﻿namespace NFB.Domain.Bus.Events
 {
     using System;
 
+    using NFB.Domain.Models;
+
     /// <summary>
-    /// The update pilot data in message.
+    /// The flight completed event.
     /// </summary>
-    public class UpdatePilotDataInMessage
+    public class FlightCompletedEvent : BaseEvent
     {
         #region Public Properties
 
