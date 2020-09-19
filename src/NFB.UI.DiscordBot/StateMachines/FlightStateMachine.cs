@@ -76,7 +76,12 @@
             this.During(
                 this.Active,
                 this.When(this.UserJoinedVoiceChannelEvent)
-                    .Then(context => context.Instance.UsersInVoiceChannel.Add(context.Data.UserId.ToGuid()))
+                    .Then(
+                        context =>
+                            {
+                                if (!context.Instance.UsersInVoiceChannel.Contains(context.Data.UserId.ToGuid()))
+                                    context.Instance.UsersInVoiceChannel.Add(context.Data.UserId.ToGuid());
+                            })
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
                     .Schedule(
                         this.UpdatePilotDataSchedule,
@@ -85,6 +90,11 @@
                         context => TimeSpan.FromSeconds(5))
                     .Unschedule(this.CheckFlightCompletedSchedule),
                 this.When(this.UserLeftVoiceChannelEvent)
+                    .Then(context =>
+                        {
+                            if (context.Instance.UsersInVoiceChannel.Contains(context.Data.UserId.ToGuid()))
+                                context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId.ToGuid());
+                        })
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
                     .Schedule(
                         this.UpdatePilotDataSchedule,
