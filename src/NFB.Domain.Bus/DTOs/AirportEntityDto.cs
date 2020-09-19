@@ -15,12 +15,12 @@
         /// <summary>
         /// Gets or sets the latitude.
         /// </summary>
-        public string Latitude { get; set; }
+        public double Latitude { get; set; }
 
         /// <summary>
         /// Gets or sets the longitude.
         /// </summary>
-        public string Longitude { get; set; }
+        public double Longitude { get; set; }
 
         /// <summary>
         /// Gets or sets the name.

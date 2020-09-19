@@ -10,112 +10,88 @@
         #region Public Fields
 
         /// <summary>
-        /// The carriers.
+        /// The altitude.
         /// </summary>
-        [JsonProperty("carriers")]
-        public string Carriers;
+        [JsonProperty("Altitude")]
+        public int Altitude;
 
         /// <summary>
         /// The city.
         /// </summary>
-        [JsonProperty("city")]
+        [JsonProperty("City")]
         public string City;
-
-        /// <summary>
-        /// The code.
-        /// </summary>
-        [JsonProperty("code")]
-        public string Code;
 
         /// <summary>
         /// The country.
         /// </summary>
-        [JsonProperty("country")]
+        [JsonProperty("Country")]
         public string Country;
 
         /// <summary>
-        /// The direct flights.
+        /// The dst.
         /// </summary>
-        [JsonProperty("direct_flights")]
-        public string DirectFlights;
+        [JsonProperty("DST")]
+        public string DST;
 
         /// <summary>
-        /// The elevation.
+        /// The iata.
         /// </summary>
-        [JsonProperty("elev")]
-        public string Elevation;
-
-        /// <summary>
-        /// The email.
-        /// </summary>
-        [JsonProperty("email")]
-        public string Email;
+        [JsonProperty("IATA")]
+        public string IATA;
 
         /// <summary>
         /// The icao.
         /// </summary>
-        [JsonProperty("icao")]
+        [JsonProperty("ICAO")]
         public string ICAO;
+
+        /// <summary>
+        /// The id.
+        /// </summary>
+        [JsonProperty("ID")]
+        public int ID;
 
         /// <summary>
         /// The latitude.
         /// </summary>
-        [JsonProperty("lat")]
-        public string Latitude;
+        [JsonProperty("Latitude")]
+        public double Latitude;
 
         /// <summary>
         /// The longitude.
         /// </summary>
-        [JsonProperty("lon")]
-        public string Longitude;
+        [JsonProperty("Longitude")]
+        public double Longitude;
 
         /// <summary>
         /// The name.
         /// </summary>
-        [JsonProperty("name")]
+        [JsonProperty("Name")]
         public string Name;
 
         /// <summary>
-        /// The phone.
+        /// The source.
         /// </summary>
-        [JsonProperty("phone")]
-        public string Phone;
-
-        /// <summary>
-        /// The runway length.
-        /// </summary>
-        [JsonProperty("runway_length")]
-        public string RunwayLength;
-
-        /// <summary>
-        /// The state.
-        /// </summary>
-        [JsonProperty("state")]
-        public string State;
+        [JsonProperty("Source")]
+        public string Source;
 
         /// <summary>
         /// The timezone.
         /// </summary>
-        [JsonProperty("tz")]
+        [JsonProperty("Timezone")]
         public string Timezone;
 
         /// <summary>
         /// The type.
         /// </summary>
-        [JsonProperty("type")]
+        [JsonProperty("Type")]
         public string Type;
 
         /// <summary>
-        /// The url.
+        /// The database time zone.
         /// </summary>
-        [JsonProperty("url")]
-        public string URL;
-
-        /// <summary>
-        /// The woe id.
-        /// </summary>
-        [JsonProperty("woeid")]
-        public string WOEId;
+        [JsonProperty("TzDatabaseTimeZon")]
+        public string TzDatabaseTimeZone;
 
         #endregion Public Fields
     }
