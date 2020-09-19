@@ -53,10 +53,22 @@
             embedBuilder.AddField("Pilots", pilotsText);
 
             if (!vatsimData.Any()) return embedBuilder.Build();
-
-            var pilotMapData = string.Join("%7C%7C", vatsimData.Select(p => $"{p.Latitude},{p.Longitude}%7Cmarker-{ColorToHex(new Color(p.AssignedColor))}-A"));
-            var url = $"https://open.mapquestapi.com/staticmap/v5/map?locations={origin.Latitude},{origin.Longitude}%7Cmarker-start%7C%7C{destination.Latitude},{destination.Longitude}%7Cmarker-end%7C%7C{pilotMapData}&key=z8WHXvhF50CDEdE3GOrleDlWtwOOZVjG";
-            embedBuilder.WithImageUrl(url);
+            try
+            {
+                var voiceChannelUsers = await voiceChannel.GetUsersAsync().FlattenAsync();
+                var pilotMapData = string.Join(
+                    "%7C%7C",
+                    vatsimData.Select(
+                        p =>
+                            $"{p.Latitude},{p.Longitude}%7Cmarker-{ColorToHex(new Color(p.AssignedColor))}-{GetPilotMarker(voiceChannelUsers, p.UserId)}"));
+                var url =
+                    $"https://open.mapquestapi.com/staticmap/v5/map?locations={origin.Latitude},{origin.Longitude}%7Cmarker-start%7C%7C{destination.Latitude},{destination.Longitude}%7Cmarker-end%7C%7C{pilotMapData}&size=400,300&key=z8WHXvhF50CDEdE3GOrleDlWtwOOZVjG";
+                embedBuilder.WithImageUrl(url);
+            }
+            catch
+            {
+                // ignored
+            }
 
             return embedBuilder.Build();
         }
@@ -77,6 +89,41 @@
         private static string ColorToHex(Color color)
         {
             return color.R.ToString("X2") + color.B.ToString("X2") + color.G.ToString("X2");
+        }
+
+        /// <summary>
+        /// The get pilot marker.
+        /// </summary>
+        /// <param name="voiceChannelUsers">
+        /// The voice channel users.
+        /// </param>
+        /// <param name="argUserId">
+        /// The arg user id.
+        /// </param>
+        /// <returns>
+        /// The <see cref="string"/>.
+        /// </returns>
+        private static string GetPilotMarker(IEnumerable<IGuildUser> voiceChannelUsers, ulong argUserId)
+        {
+            var user = voiceChannelUsers.FirstOrDefault(p => p.Id == argUserId);
+
+            return user == null ? string.Empty : GetPilotMarker(user.Nickname ?? user.Username);
+        }
+
+        /// <summary>
+        /// The get pilot marker.
+        /// </summary>
+        /// <param name="name">
+        /// The name.
+        /// </param>
+        /// <returns>
+        /// The <see cref="string"/>.
+        /// </returns>
+        private static string GetPilotMarker(string name)
+        {
+            var rtn = name.TakeWhile(char.IsLetter).ToArray().First();
+
+            return new string(rtn.ToString());
         }
 
         #endregion Private Methods

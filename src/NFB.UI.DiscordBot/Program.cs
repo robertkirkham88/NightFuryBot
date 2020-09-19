@@ -10,7 +10,6 @@
 
     using MassTransit;
 
-    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
@@ -19,7 +18,6 @@
     using NFB.Domain.Settings;
     using NFB.Infrastructure.CrossCutting.Logging;
     using NFB.Ui.DiscordBot.Extensions;
-    using NFB.UI.DiscordBot.Persistence;
     using NFB.UI.DiscordBot.StateMachines;
     using NFB.UI.DiscordBot.States;
 
@@ -69,15 +67,6 @@
                             configureDelegate.AddAutofac();
                             configureDelegate.AddSingleton(configuration);
                             configureDelegate.AddMassTransitHostedService();
-
-                            var databaseConnection = configuration.GetConnectionString("db");
-                            configureDelegate.AddDbContext<DiscordBotDbContext>(options => options.UseNpgsql(databaseConnection));
-
-                            var serviceProvider = configureDelegate.BuildServiceProvider();
-                            using (var databaseContext = serviceProvider.GetRequiredService<DiscordBotDbContext>())
-                            {
-                                databaseContext.Database.Migrate();
-                            }
                         })
                 .ConfigureContainer<ContainerBuilder>(
                     (builderContext, configureDelegate) =>
@@ -93,7 +82,13 @@
 
                                         busConfigurator.AddConsumers(Assembly.GetExecutingAssembly());
                                         busConfigurator.AddSagas(Assembly.GetExecutingAssembly());
-                                        busConfigurator.AddSagaStateMachine<FlightStateMachine, FlightState>().MartenRepository(configuration.GetConnectionString("db"));
+                                        busConfigurator.AddSagaStateMachine<FlightStateMachine, FlightState>()
+                                            .MongoDbRepository(
+                                                r =>
+                                                    {
+                                                        r.Connection = "mongodb://nfb.mongo";
+                                                        r.DatabaseName = "discord-bot-flights";
+                                                    });
 
                                         busConfigurator.AddRequestClient<CreateFlightCommand>(new Uri($"{busSettings.Host}/service_flight"));
                                         busConfigurator.AddRequestClient<RegisterVatsimCommand>(new Uri($"{busSettings.Host}/service_vatsim"));
@@ -118,9 +113,9 @@
                                                                 endpointConfigurator.ConfigureConsumers(registrationContext);
                                                                 endpointConfigurator.ConfigureSagas(registrationContext);
 
-                                                                endpointConfigurator.PrefetchCount = 1;
+                                                                endpointConfigurator.PrefetchCount = 16;
 
-                                                                endpointConfigurator.UseMessageRetry(p => p.SetRetryPolicy(f => f.Interval(30, TimeSpan.FromSeconds(1))));
+                                                                endpointConfigurator.UseMessageRetry(p => p.SetRetryPolicy(f => f.Interval(3, TimeSpan.FromSeconds(1))));
                                                             });
                                                 });
                                     });

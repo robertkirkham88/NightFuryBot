@@ -73,13 +73,24 @@ services:
             - RABBITMQ_DEFAULT_USER=rabbitmquser
             - RABBITMQ_DEFAULT_PASS=k6G4LdPttQL2DvnH
 
-    nfb.database:
-        image: postgres:latest
-        volumes:
-            - C:\docker\nfb.database\var\lib\postgresql\data:/var/lib/postgresql/data
+    nfb.mongo:
+        image: mongo
         environment:
-            POSTGRES_USER: dbuser
-            POSTGRES_PASSWORD: z1Tf3U9io5ufol
+            ME_CONFIG_MONGODB_ADMINUSERNAME: root
+            ME_CONFIG_MONGODB_ADMINPASSWORD: z1Tf3U9io5ufol
+        volumes:
+            - C:\docker\nfb.mongo\data:/data/db
+        networks:
+            - nfb.networks.database
+
+    nfb.mongo.admin:
+        image: mongo-express
+        ports:
+            - "6103:8081"
+        environment:
+            ME_CONFIG_MONGODB_ADMINUSERNAME: root
+            ME_CONFIG_MONGODB_ADMINPASSWORD: z1Tf3U9io5ufol
+            ME_CONFIG_MONGODB_SERVER: nfb.mongo
         networks:
             - nfb.networks.database
 
@@ -93,14 +104,22 @@ services:
             - "6101:80"
             - "5341"
 
+    nfb.database:
+        image: postgres:latest
+        volumes:
+            - C:\docker\nfb.database\var\lib\postgresql\data:/var/lib/postgresql/data
+        environment:
+            POSTGRES_USER: dbuser
+            POSTGRES_PASSWORD: z1Tf3U9io5ufol
+        networks:
+            - nfb.networks.database
+
     nfb.database.admin:
         image: adminer
         ports:
             - "6102:8080"
         networks:
             - nfb.networks.database
-
-
 
 networks:
     nfb.networks.bus:

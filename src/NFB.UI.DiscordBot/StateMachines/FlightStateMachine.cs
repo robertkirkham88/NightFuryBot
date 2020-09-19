@@ -51,10 +51,12 @@
                 this.Created,
                 this.When(this.FlightStartingEvent)
                     .Activity(x => x.OfType<CreateVoiceChannelActivity>())
+                    .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
                     .TransitionTo(this.Active),
                 this.When(this.FlightCreatedEvent)
                     .Activity(x => x.OfType<CreateDiscordChannelActivity>())
                     .Activity(x => x.OfType<CreateVoiceChannelActivity>())
+                    .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
                     .TransitionTo(this.Active));
 
             this.During(

@@ -16,13 +16,14 @@
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
     using NFB.UI.DiscordBot.Events;
+    using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.Models;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
     /// The update active flight message.
     /// </summary>
-    public class UpdateActiveFlightMessageActivity : Activity<FlightState, FlightStartingEvent>, Activity<FlightState, UserJoinedVoiceChannelEvent>, Activity<FlightState, UserLeftVoiceChannelEvent>, Activity<FlightState, UpdatePilotDataInMessage>
+    public class UpdateActiveFlightMessageActivity : Activity<FlightState, FlightStartingEvent>, Activity<FlightState, UserJoinedVoiceChannelEvent>, Activity<FlightState, UserLeftVoiceChannelEvent>, Activity<FlightState, UpdatePilotDataInMessage>, Activity<FlightState, FlightCreatedEvent>
     {
         #region Private Fields
 
@@ -108,6 +109,8 @@
                 context.Instance.StartTime,
                 context.Instance.VatsimPilotData);
 
+            context.Instance.UsersInVoiceChannel.Add(context.Data.UserId.ToGuid());
+
             await next.Execute(context);
         }
 
@@ -133,6 +136,9 @@
                 context.Instance.StartTime,
                 context.Instance.VatsimPilotData);
 
+            if (context.Instance.UsersInVoiceChannel.Any(p => p == context.Data.UserId.ToGuid()))
+                context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId.ToGuid());
+
             await next.Execute(context);
         }
 
@@ -149,6 +155,31 @@
         /// The <see cref="Task"/>.
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, UpdatePilotDataInMessage> context, Behavior<FlightState, UpdatePilotDataInMessage> next)
+        {
+            await this.UpdateChannelMessage(
+                context.Instance.Origin,
+                context.Instance.Destination,
+                context.Instance.MessageId,
+                context.Instance.VoiceChannelUlongId,
+                context.Instance.StartTime,
+                context.Instance.VatsimPilotData);
+
+            await next.Execute(context);
+        }
+
+        /// <summary>
+        /// Execute the activity.
+        /// </summary>
+        /// <param name="context">
+        /// The context.
+        /// </param>
+        /// <param name="next">
+        /// The next.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
+        public async Task Execute(BehaviorContext<FlightState, FlightCreatedEvent> context, Behavior<FlightState, FlightCreatedEvent> next)
         {
             await this.UpdateChannelMessage(
                 context.Instance.Origin,
@@ -246,6 +277,27 @@
         }
 
         /// <summary>
+        /// Activity faulted.
+        /// </summary>
+        /// <typeparam name="TException">
+        /// The exception.
+        /// </typeparam>
+        /// <param name="context">
+        /// The context.
+        /// </param>
+        /// <param name="next">
+        /// The next.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
+        public Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightCreatedEvent, TException> context, Behavior<FlightState, FlightCreatedEvent> next)
+            where TException : Exception
+        {
+            return next.Faulted(context);
+        }
+
+        /// <summary>
         /// Create a scope.
         /// </summary>
         /// <param name="context">
@@ -319,10 +371,19 @@
                             vatsimData);
 
             var restMessage = await textChannel.GetMessageAsync((ulong)messageId) as RestUserMessage;
-            if (restMessage == null)
+            var socketMessage = await textChannel.GetMessageAsync((ulong)messageId) as SocketUserMessage;
+
+            if (restMessage == null && socketMessage == null)
                 throw new InvalidOperationException($"Unable to find a message with ID {messageId}.");
 
-            await restMessage.ModifyAsync(p => p.Embed = embed);
+            if (restMessage != null)
+            {
+                await restMessage.ModifyAsync(p => p.Embed = embed);
+            }
+            else
+            {
+                await socketMessage.ModifyAsync(p => p.Embed = embed);
+            }
         }
 
         #endregion Private Methods

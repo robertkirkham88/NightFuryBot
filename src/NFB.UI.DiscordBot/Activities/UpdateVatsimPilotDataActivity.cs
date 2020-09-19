@@ -44,11 +44,11 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public Task Execute(BehaviorContext<FlightState, VatsimPilotUpdatedEvent> context, Behavior<FlightState, VatsimPilotUpdatedEvent> next)
+        public async Task Execute(BehaviorContext<FlightState, VatsimPilotUpdatedEvent> context, Behavior<FlightState, VatsimPilotUpdatedEvent> next)
         {
-            var pilotData = context.Instance.VatsimPilotData.FirstOrDefault(p => p.UserId == context.Data.UserId);
+            var exists = context.Instance.VatsimPilotData.Any(p => p.UserId == context.Data.UserId);
 
-            if (pilotData == null)
+            if (!exists)
             {
                 // Pilot color.
                 var chosenColorUint = context.Instance.AvailableColors.FirstOrDefault();
@@ -75,14 +75,18 @@
             }
             else
             {
-                // Update existing pilot data.
-                pilotData.DestinationAirport = context.Data.DestinationAirport;
-                pilotData.Latitude = context.Data.Latitude;
-                pilotData.Longitude = context.Data.Longitude;
-                pilotData.OriginAirport = context.Data.OriginAirport;
+                var pilot = context.Instance.VatsimPilotData.FirstOrDefault(p => p.UserId == context.Data.UserId);
+
+                if (pilot != null)
+                {
+                    pilot.DestinationAirport = context.Data.DestinationAirport;
+                    pilot.Latitude = context.Data.Latitude;
+                    pilot.Longitude = context.Data.Longitude;
+                    pilot.OriginAirport = context.Data.OriginAirport;
+                }
             }
 
-            return next.Execute(context);
+            await next.Execute(context);
         }
 
         /// <summary>

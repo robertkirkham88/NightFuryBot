@@ -5,13 +5,17 @@
 
     using Automatonymous;
 
+    using MassTransit.Saga;
+
+    using MongoDB.Bson.Serialization.Attributes;
+
     using NFB.Domain.Bus.DTOs;
     using NFB.UI.DiscordBot.Models;
 
     /// <summary>
     /// The flight state.
     /// </summary>
-    public class FlightState : SagaStateMachineInstance
+    public class FlightState : SagaStateMachineInstance, ISagaVersion
     {
         #region Public Properties
 
@@ -23,6 +27,7 @@
         /// <summary>
         /// Gets or sets the correlation id.
         /// </summary>
+        [BsonId]
         public Guid CorrelationId { get; set; }
 
         /// <summary>
@@ -69,6 +74,11 @@
         /// Gets or sets the vatsim pilot data.
         /// </summary>
         public IList<VatsimPilotData> VatsimPilotData { get; set; } = new List<VatsimPilotData>();
+
+        /// <summary>
+        /// Gets or sets the version.
+        /// </summary>
+        public int Version { get; set; }
 
         /// <summary>
         /// Gets or sets the voice channel id.
