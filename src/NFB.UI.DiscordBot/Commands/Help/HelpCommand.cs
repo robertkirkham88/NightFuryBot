@@ -63,7 +63,7 @@
                 embedBuilder.AddField(command.Name, $"{summary}");
             }
 
-            return CommandResult.FromSuccess(new CommandResultMessage(embed: embedBuilder.Build()));
+            return CommandResult.FromSuccess(directMessage: new CommandResultMessage(embed: embedBuilder.Build()));
         }
 
         #endregion Public Methods
