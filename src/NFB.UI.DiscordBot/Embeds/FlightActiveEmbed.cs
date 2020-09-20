@@ -40,7 +40,7 @@
         /// <returns>
         /// The <see cref="Embed"/>.
         /// </returns>
-        public static async Task<Embed> CreateEmbed(AirportEntityDto origin, AirportEntityDto destination, DateTime startTime, IGuildChannel voiceChannel, IList<VatsimPilotData> vatsimData)
+        public static async Task<Embed> CreateEmbed(AirportEntityDto origin, AirportEntityDto destination, DateTime startTime, IGuildChannel voiceChannel, IList<VatsimPilotModel> vatsimData)
         {
             var embedBuilder = new EmbedBuilder { Color = Color.Green, Title = $"{origin.Name} to {destination.Name}" };
             var usersInChannel = await voiceChannel.GetUsersAsync().FlattenAsync();
@@ -148,7 +148,7 @@
         /// <returns>
         /// The <see cref="double"/>.
         /// </returns>
-        private static double GetRemainingDistance(AirportEntityDto destination, IList<VatsimPilotData> pilots, ulong user)
+        private static double GetRemainingDistance(AirportEntityDto destination, IList<VatsimPilotModel> pilots, ulong user)
         {
             var pilot = pilots.FirstOrDefault(p => p.UserId == user);
 

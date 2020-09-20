@@ -73,7 +73,7 @@
         /// <summary>
         /// Gets or sets the vatsim pilot data.
         /// </summary>
-        public IList<VatsimPilotData> VatsimPilotData { get; set; } = new List<VatsimPilotData>();
+        public IList<VatsimPilotModel> VatsimPilotData { get; set; } = new List<VatsimPilotModel>();
 
         /// <summary>
         /// Gets or sets the version.

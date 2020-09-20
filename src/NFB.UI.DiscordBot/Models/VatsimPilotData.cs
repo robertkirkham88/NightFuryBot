@@ -3,7 +3,7 @@
     /// <summary>
     /// The vatsim pilot data.
     /// </summary>
-    public class VatsimPilotData
+    public class VatsimPilotModel
     {
         #region Public Properties
 

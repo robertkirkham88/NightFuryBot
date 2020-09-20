@@ -1,13 +1,10 @@
 ﻿namespace NFB.UI.DiscordBot.Commands.Help
 {
-    using System.ComponentModel;
     using System.Linq;
     using System.Threading.Tasks;
 
     using Discord;
     using Discord.Commands;
-
-    using Microsoft.EntityFrameworkCore.Internal;
 
     /// <summary>
     /// The help command.
@@ -51,7 +48,9 @@
         [Command]
         [Name("Help")]
         [Summary("Display a list of commands with descriptions.\r\nExample: !help")]
+#pragma warning disable 1998
         public async Task<RuntimeResult> ExecuteAsync()
+#pragma warning restore 1998
         {
             var commands = this.commandService.Commands.ToList();
             var embedBuilder = new EmbedBuilder { Title = "Help", Description = "List of available commands", Color = Color.DarkGreen };

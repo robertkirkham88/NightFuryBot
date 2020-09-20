@@ -1,6 +1,5 @@
 ﻿namespace NFB.UI.DiscordBot.Commands.Source
 {
-    using System;
     using System.Threading.Tasks;
 
     using Discord.Commands;
@@ -23,7 +22,9 @@
         [Command]
         [Name("Source")]
         [Summary("Show the source code for the bot.\r\nExample: !source")]
+#pragma warning disable 1998
         public async Task<RuntimeResult> ExecuteAsync()
+#pragma warning restore 1998
         {
             return CommandResult.FromSuccess(
                 new CommandResultMessage(

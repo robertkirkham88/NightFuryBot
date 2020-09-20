@@ -1,7 +1,6 @@
 ﻿namespace NFB.UI.DiscordBot.Commands.Flight
 {
     using System;
-    using System.ComponentModel;
     using System.Threading.Tasks;
 
     using Discord.Commands;

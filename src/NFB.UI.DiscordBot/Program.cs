@@ -8,6 +8,8 @@
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
 
+    using AutoMapper.Contrib.Autofac.DependencyInjection;
+
     using MassTransit;
 
     using Microsoft.Extensions.Configuration;
@@ -71,6 +73,8 @@
                 .ConfigureContainer<ContainerBuilder>(
                     (builderContext, configureDelegate) =>
                         {
+                            configureDelegate.AddAutoMapper(Assembly.GetExecutingAssembly());
+
                             configureDelegate.AddCommandService();
                             configureDelegate.AddDiscordService();
 

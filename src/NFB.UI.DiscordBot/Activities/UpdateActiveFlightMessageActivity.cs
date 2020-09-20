@@ -342,7 +342,7 @@
             ulong? messageId,
             ulong? voiceChannelId,
             DateTime startTime,
-            IList<VatsimPilotData> vatsimData)
+            IList<VatsimPilotModel> vatsimData)
         {
             if (messageId == null)
                 throw new InvalidOperationException("Message ID is null");

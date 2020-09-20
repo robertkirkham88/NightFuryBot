@@ -54,8 +54,4 @@
     <ProjectReference Include="..\NFB.Domain\NFB.Domain.csproj" />
     <ProjectReference Include="..\NFB.Infrastructure.CrossCutting\NFB.Infrastructure.CrossCutting.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Repository\" />
-  </ItemGroup>
 </Project>
