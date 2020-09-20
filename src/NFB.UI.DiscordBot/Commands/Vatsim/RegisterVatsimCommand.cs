@@ -70,11 +70,9 @@
                     await successful;
                     return CommandResult.FromSuccess($"Successfully registered your Vatsim ID {id}");
                 }
-                else
-                {
-                    await failed;
-                    return CommandResult.FromError($"Failed to register your Vatsim ID as {id}");
-                }
+
+                await failed;
+                return CommandResult.FromError($"Failed to register your Vatsim ID as {id}");
             }
             catch (Exception ex)
             {

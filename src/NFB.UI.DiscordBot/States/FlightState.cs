@@ -46,11 +46,6 @@
         public AirportEntityDto Destination { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether flight completed.
-        /// </summary>
-        public bool FlightCompleted { get; set; }
-
-        /// <summary>
         /// Gets or sets the message id.
         /// </summary>
         public ulong? MessageId { get; set; }

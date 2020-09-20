@@ -1,7 +1,5 @@
 ﻿namespace NFB.UI.DiscordBot.Models
 {
-    using Discord;
-
     /// <summary>
     /// The vatsim pilot data.
     /// </summary>

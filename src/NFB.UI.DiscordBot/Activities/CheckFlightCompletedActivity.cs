@@ -15,8 +15,6 @@
     using NFB.UI.DiscordBot.Schedules;
     using NFB.UI.DiscordBot.States;
 
-    using Remotion.Linq.Clauses.ResultOperators;
-
     /// <summary>
     /// The update voice channel users activity.
     /// </summary>
@@ -84,7 +82,7 @@
             if (guild == null || category == null)
                 throw new InvalidOperationException("Unable to find a voice channel because was unable to find guild or voice channel");
 
-            var textChannel = category?.Channels.FirstOrDefault(p => p.Name == "flights") as SocketTextChannel;
+            var textChannel = category.Channels.FirstOrDefault(p => p.Name == "flights") as SocketTextChannel;
             if (textChannel == null)
                 throw new InvalidOperationException($"Unable to find a channel named 'flights'.");
 

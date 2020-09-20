@@ -87,14 +87,12 @@
 
                 if (successful.IsCompletedSuccessfully)
                 {
-                    var response = await successful;
+                    await successful;
                     return CommandResult.FromSuccess($"Adding a flight from {origin} to {destination} for {startTime.ToUniversalTime():s}.");
                 }
-                else
-                {
-                    var response = await failed;
-                    return CommandResult.FromError($"Failed to add a flight from {origin} to {destination} for {startTime.ToUniversalTime():s}.");
-                }
+
+                await failed;
+                return CommandResult.FromError($"Failed to add a flight from {origin} to {destination} for {startTime.ToUniversalTime():s}.");
             }
             catch (Exception ex)
             {
