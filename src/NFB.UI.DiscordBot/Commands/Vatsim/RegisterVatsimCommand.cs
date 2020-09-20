@@ -1,6 +1,7 @@
 ﻿namespace NFB.UI.DiscordBot.Commands.Vatsim
 {
     using System;
+    using System.ComponentModel;
     using System.Threading.Tasks;
 
     using Discord.Commands;
@@ -56,6 +57,7 @@
         /// </returns>
         [Name("Register Vatsim ID")]
         [Command]
+        [Summary("!vatsim [ID]\r\nRegister your Vatsim to the specified ID.\r\nExample:\r\n!vatsim 123456789")]
         public async Task<RuntimeResult> ExecuteAsync(string id)
         {
             try

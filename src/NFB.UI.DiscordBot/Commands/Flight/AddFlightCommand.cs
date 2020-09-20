@@ -1,6 +1,7 @@
 ﻿namespace NFB.UI.DiscordBot.Commands.Flight
 {
     using System;
+    using System.ComponentModel;
     using System.Threading.Tasks;
 
     using Discord.Commands;
@@ -63,6 +64,7 @@
         [Name("Add Flight")]
         [Command("Add")]
         [Alias("a")]
+        [Summary("!flight add [OriginICAO] [DestinationICAO] [StartTimeUTC]\r\nAdd a new flight, times are specified in UTC format and must be at least 15 minutes in the future.\r\nExamples:\r\n!flight add EGCC EGLL 23:30\r\n!flight add EGCC EGLL 09/19/2020 23:30\r\n!flight add EGCC EGLL 09/19/2020 23:30:15")]
         public async Task<RuntimeResult> ExecuteAsync(string origin, string destination, [Remainder] DateTime startTime)
         {
             /*
