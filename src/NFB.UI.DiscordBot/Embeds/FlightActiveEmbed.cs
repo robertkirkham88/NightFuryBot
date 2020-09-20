@@ -7,6 +7,8 @@
 
     using Discord;
 
+    using GeoCoordinatePortable;
+
     using NFB.Domain.Bus.DTOs;
     using NFB.UI.DiscordBot.Models;
 
@@ -44,7 +46,12 @@
             var usersInChannel = await voiceChannel.GetUsersAsync().FlattenAsync();
             var pilotsText = $"Join voice channel: {voiceChannel.Name}\r\n" + string.Join(
                                  "\r\n",
-                                 usersInChannel.Select(p => $"- {p.Nickname ?? p.Username}"));
+                                 usersInChannel.Select(p =>
+                                     {
+                                         var pilot = vatsimData.FirstOrDefault(m => m.UserId == p.Id);
+
+                                         return pilot == null ? $"- {p.Nickname ?? p.Username}" : $"- {p.Nickname ?? p.Username} (Dist: {GetRemainingDistance(destination, vatsimData, p.Id)}nm)";
+                                     }));
 
             embedBuilder.AddField("Status", "Started");
             embedBuilder.AddField("Origin", origin.ICAO, true);
@@ -97,15 +104,15 @@
         /// <param name="voiceChannelUsers">
         /// The voice channel users.
         /// </param>
-        /// <param name="argUserId">
-        /// The arg user id.
+        /// <param name="id">
+        /// The user id.
         /// </param>
         /// <returns>
         /// The <see cref="string"/>.
         /// </returns>
-        private static string GetPilotMarker(IEnumerable<IGuildUser> voiceChannelUsers, ulong argUserId)
+        private static string GetPilotMarker(IEnumerable<IGuildUser> voiceChannelUsers, ulong id)
         {
-            var user = voiceChannelUsers.FirstOrDefault(p => p.Id == argUserId);
+            var user = voiceChannelUsers.FirstOrDefault(p => p.Id == id);
 
             return user == null ? string.Empty : GetPilotMarker(user.Nickname ?? user.Username);
         }
@@ -124,6 +131,34 @@
             var rtn = name.TakeWhile(char.IsLetter).ToArray().First();
 
             return new string(rtn.ToString());
+        }
+
+        /// <summary>
+        /// Get the remaining distance.
+        /// </summary>
+        /// <param name="destination">
+        /// The destination.
+        /// </param>
+        /// <param name="pilots">
+        /// The pilots.
+        /// </param>
+        /// <param name="user">
+        /// The user.
+        /// </param>
+        /// <returns>
+        /// The <see cref="double"/>.
+        /// </returns>
+        private static double GetRemainingDistance(AirportEntityDto destination, IList<VatsimPilotData> pilots, ulong user)
+        {
+            var pilot = pilots.FirstOrDefault(p => p.UserId == user);
+
+            if (pilot == null)
+                return double.NaN;
+
+            var destinationCoordinates = new GeoCoordinate(destination.Latitude, destination.Longitude);
+            var pilotCoordinates = new GeoCoordinate(pilot.Latitude, pilot.Longitude);
+
+            return Math.Round(pilotCoordinates.GetDistanceTo(destinationCoordinates) * 0.000539957, 0); // meters to miles.
         }
 
         #endregion Private Methods
