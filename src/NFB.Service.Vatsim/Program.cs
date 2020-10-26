@@ -103,8 +103,6 @@
                                                         busSettings.Queue,
                                                         endpointConfigurator =>
                                                             {
-                                                                endpointConfigurator.PrefetchCount = 1;
-
                                                                 endpointConfigurator.ConfigureConsumers(
                                                                     registrationContext);
                                                                 endpointConfigurator.ConfigureSagas(

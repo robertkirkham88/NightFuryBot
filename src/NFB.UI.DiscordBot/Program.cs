@@ -117,7 +117,7 @@
                                                                 endpointConfigurator.ConfigureConsumers(registrationContext);
                                                                 endpointConfigurator.ConfigureSagas(registrationContext);
 
-                                                                endpointConfigurator.PrefetchCount = 16;
+                                                                endpointConfigurator.PrefetchCount = 1;
 
                                                                 endpointConfigurator.UseMessageRetry(p => p.SetRetryPolicy(f => f.Interval(3, TimeSpan.FromSeconds(1))));
 
