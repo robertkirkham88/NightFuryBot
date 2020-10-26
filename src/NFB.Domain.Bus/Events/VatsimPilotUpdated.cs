@@ -15,6 +15,21 @@
         public string DestinationAirport { get; set; }
 
         /// <summary>
+        /// Gets or sets the flight altitude.
+        /// </summary>
+        public int FlightAltitude { get; set; }
+
+        /// <summary>
+        /// Gets or sets the flight heading.
+        /// </summary>
+        public int FlightHeading { get; set; }
+
+        /// <summary>
+        /// Gets or sets the flight speed.
+        /// </summary>
+        public int FlightSpeed { get; set; }
+
+        /// <summary>
         /// Gets or sets the latitude.
         /// </summary>
         public double Latitude { get; set; }

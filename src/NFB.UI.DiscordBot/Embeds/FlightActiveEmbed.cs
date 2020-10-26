@@ -50,7 +50,15 @@
                                      {
                                          var pilot = vatsimData.FirstOrDefault(m => m.UserId == p.Id);
 
-                                         return pilot == null ? $"- {p.Nickname ?? p.Username}" : $"- {p.Nickname ?? p.Username} (Dist: {GetRemainingDistance(destination, vatsimData, p.Id)}nm)";
+                                         if (pilot == null)
+                                         {
+                                             return $"- {p.Nickname ?? p.Username}";
+                                         }
+
+                                         var remainingDistance = GetRemainingDistance(destination, vatsimData, p.Id);
+                                         var eta = GetRemainingTime(remainingDistance, pilot.FlightSpeed);
+
+                                         return $"- {p.Nickname ?? p.Username} (Dist: {remainingDistance}nm, Hdg: {pilot.FlightHeading}, Spd: {pilot.FlightSpeed}, Alt: {pilot.FlightAltitude}, ETA: {eta:HHmm})";
                                      }));
 
             embedBuilder.AddField("Status", "Started");
@@ -159,6 +167,31 @@
             var pilotCoordinates = new GeoCoordinate(pilot.Latitude, pilot.Longitude);
 
             return Math.Round(pilotCoordinates.GetDistanceTo(destinationCoordinates) * 0.000539957, 0); // meters to miles.
+        }
+
+        /// <summary>
+        /// Get the ETA.
+        /// </summary>
+        /// <param name="nm">
+        /// The nm.
+        /// </param>
+        /// <param name="knots">
+        /// The knots.
+        /// </param>
+        /// <returns>
+        /// The <see cref="DateTime"/>.
+        /// </returns>
+        private static DateTime GetRemainingTime(double nm, int knots)
+        {
+            var milesRemaining = nm * 1.15078;
+            var milesPerHour = knots * 1.15078;
+
+            var minutesRemaining = (milesRemaining * 60) / milesPerHour;
+
+            if (double.IsInfinity(minutesRemaining))
+                return DateTime.UtcNow;
+
+            return DateTime.UtcNow.AddMinutes(minutesRemaining);
         }
 
         #endregion Private Methods

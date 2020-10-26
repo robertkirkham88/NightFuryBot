@@ -148,6 +148,9 @@
                                 Latitude = isOnline.Latitude,
                                 Longitude = isOnline.Longitude,
                                 VatsimId = isOnline.Cid,
+                                FlightHeading = isOnline.Heading,
+                                FlightAltitude = isOnline.Altitude,
+                                FlightSpeed = isOnline.GroundSpeed,
                                 UserId = ulong.Parse(pilot.UserId)
                             });
                     }
