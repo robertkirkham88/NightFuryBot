@@ -1,59 +1,50 @@
 ﻿namespace NFB.UI.DiscordBot.Tests.StateMachines
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading;
     using System.Threading.Tasks;
-
-    using Autofac;
-    using Autofac.Extensions.DependencyInjection;
 
     using Discord;
     using Discord.WebSocket;
 
     using MassTransit;
-    using MassTransit.Saga;
     using MassTransit.Testing;
 
     using Microsoft.Extensions.DependencyInjection;
 
-    using Moq;
-
     using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Activities;
-    using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.StateMachines;
     using NFB.UI.DiscordBot.States;
-    using NFB.UI.DiscordBot.Tests.TestFactory;
 
     using Xunit;
 
     /// <summary>
     /// The flight state machine tests.
-    /// TODO: Cleanup tests as these are messy.
     /// </summary>
-    public class FlightStateMachineTests
+    public class FlightStateMachineTests : IDisposable
     {
         #region Private Fields
+
+        /// <summary>
+        /// The client.
+        /// </summary>
+        private readonly DiscordSocketClient client;
 
         /// <summary>
         /// The harness.
         /// </summary>
         private readonly InMemoryTestHarness harness;
 
-        private readonly ServiceProvider provider;
+        /// <summary>
+        /// The saga harness.
+        /// </summary>
+        private readonly IStateMachineSagaTestHarness<FlightState, FlightStateMachine> sagaHarness;
 
         /// <summary>
         /// The state machine.
         /// </summary>
         private readonly FlightStateMachine stateMachine;
-
-        /// <summary>
-        /// The saga.
-        /// </summary>
-        private StateMachineSagaTestHarness<FlightState, FlightStateMachine> saga;
 
         #endregion Private Fields
 
@@ -64,57 +55,36 @@
         /// </summary>
         public FlightStateMachineTests()
         {
-            // Mocks
-            var mockMessage = new Mock<UserMessageTestObject>();
-            var mockVoiceChannel = new Mock<VoiceChannelTestObject>();
-            var mockTextChannel = new Mock<TextChannelTestObject>();
-            var mockCategory = new Mock<CategoryChannelTestObject>();
-            var mockGuild = new Mock<GuildTestObject>();
-            var mockClient = new Mock<DiscordClientTestObject>();
+            // Get the token.
+            var token = Environment.GetEnvironmentVariable("NFBTestToken", EnvironmentVariableTarget.Machine);
+            if (string.IsNullOrEmpty(token))
+                throw new Exception("Token empty or not found");
 
-            // Properties
-            var mockCategoryObject = mockCategory.Object;
-            var mockTextChannelObject = mockTextChannel.Object;
-            var mockMessageObject = mockMessage.Object;
-            var mockVoiceChannelObject = mockVoiceChannel.Object;
-            var mockGuildObject = mockGuild.Object;
-            var mockClientObject = mockClient.Object;
+            // Client
+            this.client = new DiscordSocketClient(new DiscordSocketConfig { LogLevel = LogSeverity.Debug, DefaultRetryMode = RetryMode.AlwaysRetry });
+            this.client.LoginAsync(TokenType.Bot, token).Wait();
+            this.client.StartAsync().Wait();
 
-            mockMessageObject.Id = 789;
-            mockVoiceChannelObject.Id = 456;
-            mockTextChannelObject.Id = 123;
-            mockTextChannelObject.Name = "flights";
-            mockCategoryObject.Name = "flights";
-            mockClientObject.Guilds = new List<IGuild> { mockGuildObject };
-
-            // Setups
-            mockTextChannel.Setup(p => p.SendMessageAsync(It.IsAny<Embed>())).ReturnsAsync(mockMessage.Object);
-            mockGuild.Setup(p => p.CreateVoiceChannelAsync(It.IsAny<string>(), It.IsAny<Action<VoiceChannelProperties>>())).ReturnsAsync(mockVoiceChannel.Object);
-            mockTextChannel.Setup(p => p.GetMessageAsync(It.IsAny<ulong>())).ReturnsAsync(mockMessage.Object);
-            mockMessage.Setup(p => p.ModifyAsync(It.IsAny<Action<MessageProperties>>())).Returns(Task.CompletedTask);
-
-            // Service provider
+            // Services
             var services = new ServiceCollection();
-            services.AddMassTransit();
-
-            services.AddSingleton<DiscordSocketClient>(mockClient.Object);
+            services.AddMassTransitInMemoryTestHarness(
+                cfg =>
+                    {
+                        cfg.AddSagaStateMachine<FlightStateMachine, FlightState>().InMemoryRepository();
+                        cfg.AddSagaStateMachineTestHarness<FlightStateMachine, FlightState>();
+                    });
+            services.AddSingleton(this.client);
             services.AddScoped<CheckFlightCompletedActivity>();
             services.AddScoped<CreateDiscordChannelActivity>();
             services.AddScoped<CreateVoiceChannelActivity>();
             services.AddScoped<UpdateActiveFlightMessageActivity>();
             services.AddScoped<UpdateVatsimPilotDataActivity>();
-            services.RegisterInMemorySagaRepository<FlightState>();
-            services.RegisterSagaStateMachine<FlightStateMachine, FlightState>();
-
-            this.provider = services.BuildServiceProvider();
+            var provider = services.BuildServiceProvider(true);
 
             // Harness
-            this.harness = new InMemoryTestHarness();
+            this.harness = provider.GetRequiredService<InMemoryTestHarness>();
+            this.sagaHarness = provider.GetRequiredService<IStateMachineSagaTestHarness<FlightState, FlightStateMachine>>();
             this.stateMachine = new FlightStateMachine();
-            this.harness.OnConfigureInMemoryReceiveEndpoint += cfg =>
-            {
-                cfg.StateMachineSaga(this.stateMachine, this.provider);
-            };
         }
 
         #endregion Public Constructors
@@ -122,186 +92,79 @@
         #region Public Methods
 
         /// <summary>
-        /// Receive flight created event new saga in created state.
+        /// The dispose.
+        /// </summary>
+        public void Dispose()
+        {
+            this.client?.LogoutAsync().Wait();
+            this.client?.Dispose();
+        }
+
+        /// <summary>
+        /// Receive flight created event creates new saga.
         /// </summary>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
         [Fact]
-        public async Task ReceiveFlightCreatedEventNewSagaInCreatedState()
+        public async Task ReceiveFlightCreatedEventCreatesNewSaga()
         {
+            // Arrange
             await this.harness.Start();
 
-            var id = Guid.NewGuid();
+            var flightCreatedEvent = new FlightCreatedEvent
+            {
+                Id = Guid.NewGuid(),
+                Destination = new AirportEntityDto { ICAO = "EGCC" },
+                Origin = new AirportEntityDto { ICAO = "EGLL" },
+                StartTime = DateTime.UtcNow.AddHours(3)
+            };
 
-            await this.harness.Bus.Publish(
-                new FlightCreatedEvent
-                {
-                    Id = id,
-                    Destination = new AirportEntityDto { ICAO = "EGCC" },
-                    Origin = new AirportEntityDto { ICAO = "EGLL" },
-                    StartTime = DateTime.UtcNow.AddHours(3)
-                });
+            // Act
+            await this.harness.Bus.Publish(flightCreatedEvent);
 
-            var repo = this.provider.GetService<ISagaRepository<FlightState>>() as InMemorySagaRepository<FlightState>;
-            Assert.NotNull(repo);
-            var sagaRepo = await repo.ShouldContainSagaInState(
-                id,
-                this.stateMachine,
-                x => x.Created,
-                TimeSpan.FromSeconds(5));
-
-            Assert.NotNull(sagaRepo);
+            // Assert
+            var sagaExists = await this.sagaHarness.Exists(flightCreatedEvent.Id, this.stateMachine.Created, TimeSpan.FromSeconds(5));
+            Assert.Equal(flightCreatedEvent.Id, sagaExists.Value);
 
             await this.harness.Stop();
         }
 
         /// <summary>
-        /// Receive flight created event sets instance information.
+        /// Receive out of order flight created event creates new saga.
         /// </summary>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
         [Fact]
-        public async Task ReceiveFlightCreatedEventSetsInstanceInformation()
+        public async Task ReceiveOutOfOrderFlightCreatedEventCreatesNewSaga()
         {
+            // Arrange
             await this.harness.Start();
-
-            var id = Guid.NewGuid();
-
-            await this.harness.Bus.Publish(
-                new FlightCreatedEvent
-                {
-                    Id = id,
-                    Destination = new AirportEntityDto { ICAO = "EGCC" },
-                    Origin = new AirportEntityDto { ICAO = "EGLL" },
-                    StartTime = DateTime.UtcNow.AddHours(3)
-                });
-
-            Assert.NotNull(await this.saga.Exists(id, this.stateMachine.Created, TimeSpan.FromSeconds(1)));
-
-            var instance = this.saga.Created.Select(p => p.CorrelationId == id).FirstOrDefault();
-            Assert.Equal("EGCC", instance?.Saga.Destination.ICAO);
-            Assert.Equal("EGLL", instance?.Saga.Origin.ICAO);
-        }
-
-        /// <summary>
-        /// Receive flight starting event saga in active state.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="Task"/>.
-        /// </returns>
-        [Fact]
-        public async Task ReceiveFlightStartingEventSagaInActiveState()
-        {
-            await this.harness.Start();
-
-            var id = Guid.NewGuid();
-
-            await this.harness.Bus.Publish(new FlightCreatedEvent
+            var flightStartingEvent = new FlightStartingEvent
             {
-                Id = id,
+                Id = Guid.NewGuid(),
+                Destination = "EGCC",
+                Origin = "EGLL",
+                StartTime = DateTime.UtcNow.AddHours(3)
+            };
+            var flightCreatedEvent = new FlightCreatedEvent
+            {
+                Id = flightStartingEvent.Id,
                 Destination = new AirportEntityDto { ICAO = "EGCC" },
                 Origin = new AirportEntityDto { ICAO = "EGLL" },
                 StartTime = DateTime.UtcNow.AddHours(3)
-            });
+            };
 
-            Assert.NotNull(await this.saga.Exists(id, this.stateMachine.Created, TimeSpan.FromSeconds(1)));
-            Assert.Null(await this.saga.Exists(id, this.stateMachine.Active, TimeSpan.FromSeconds(1)));
+            // Act
+            await this.harness.Bus.Publish(flightStartingEvent);
+            await this.harness.Bus.Publish(flightCreatedEvent);
 
-            await this.harness.Bus.Publish(new FlightStartingEvent
-            {
-                Id = id,
-                StartTime = DateTime.UtcNow.AddHours(3)
-            });
-
-            Assert.NotNull(await this.saga.Exists(id, this.stateMachine.Active, TimeSpan.FromSeconds(1)));
+            // Assert
+            var sagaExists = await this.sagaHarness.Exists(flightCreatedEvent.Id, this.stateMachine.Active, TimeSpan.FromSeconds(5));
+            Assert.Equal(flightCreatedEvent.Id, sagaExists.Value);
 
             await this.harness.Stop();
-        }
-
-        /// <summary>
-        /// The user joined channel event adds user to user list.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="Task"/>.
-        /// </returns>
-        [Fact]
-        public async Task UserJoinedChannelEventAddsUserToUserList()
-        {
-            await this.harness.Start();
-
-            var id = Guid.NewGuid();
-
-            await this.harness.Bus.Publish(new FlightCreatedEvent
-            {
-                Id = id,
-                Destination = new AirportEntityDto { ICAO = "EGCC" },
-                Origin = new AirportEntityDto { ICAO = "EGLL" },
-                StartTime = DateTime.UtcNow.AddHours(3)
-            });
-
-            Assert.NotNull(await this.saga.Exists(id, this.stateMachine.Created, TimeSpan.FromSeconds(1)));
-            Assert.Null(await this.saga.Exists(id, this.stateMachine.Active, TimeSpan.FromSeconds(1)));
-
-            await this.harness.Bus.Publish(new FlightStartingEvent
-            {
-                Id = id,
-                StartTime = DateTime.UtcNow.AddHours(3)
-            });
-
-            await this.saga.Exists(id, this.stateMachine.Active, TimeSpan.FromSeconds(1));
-
-            var sagaInstance = this.saga.Created.Select(p => p.CorrelationId == id).First();
-            sagaInstance.Saga.VoiceChannelId = ((ulong)123456789).ToGuid();
-
-            await this.harness.Bus.Publish(new UserJoinedVoiceChannelEvent { ChannelId = 123456789, UserId = 1111111111 });
-            Thread.Sleep(500);
-            Assert.Single(sagaInstance.Saga.UsersInVoiceChannel.Where(p => p == ((ulong)1111111111).ToGuid()));
-        }
-
-        /// <summary>
-        /// The user left channel event removes user from user list.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="Task"/>.
-        /// </returns>
-        [Fact]
-        public async Task UserLeftChannelEventRemovesUserFromUserList()
-        {
-            await this.harness.Start();
-
-            var id = Guid.NewGuid();
-
-            await this.harness.Bus.Publish(new FlightCreatedEvent
-            {
-                Id = id,
-                Destination = new AirportEntityDto { ICAO = "EGCC" },
-                Origin = new AirportEntityDto { ICAO = "EGLL" },
-                StartTime = DateTime.UtcNow.AddHours(3)
-            });
-
-            Assert.NotNull(await this.saga.Exists(id, this.stateMachine.Created, TimeSpan.FromSeconds(1)));
-            Assert.Null(await this.saga.Exists(id, this.stateMachine.Active, TimeSpan.FromSeconds(1)));
-
-            await this.harness.Bus.Publish(new FlightStartingEvent
-            {
-                Id = id,
-                StartTime = DateTime.UtcNow.AddHours(3)
-            });
-
-            await this.saga.Exists(id, this.stateMachine.Active, TimeSpan.FromSeconds(1));
-
-            var sagaInstance = this.saga.Created.Select(p => p.CorrelationId == id).First();
-            sagaInstance.Saga.VoiceChannelId = ((ulong)123456789).ToGuid();
-
-            await this.harness.Bus.Publish(new UserJoinedVoiceChannelEvent { ChannelId = 123456789, UserId = 1111111111 });
-            Thread.Sleep(500);
-            Assert.Single(sagaInstance.Saga.UsersInVoiceChannel.Where(p => p == ((ulong)1111111111).ToGuid()));
-
-            await this.harness.Bus.Publish(new UserLeftVoiceChannelEvent { ChannelId = 123456789, UserId = 1111111111 });
-            Thread.Sleep(500);
-            Assert.Empty(sagaInstance.Saga.UsersInVoiceChannel);
         }
 
         #endregion Public Methods
