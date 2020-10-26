@@ -12,6 +12,8 @@
 
     using GreenPipes;
 
+    using Microsoft.Extensions.Logging;
+
     using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
@@ -32,6 +34,11 @@
         /// </summary>
         private readonly DiscordSocketClient client;
 
+        /// <summary>
+        /// The logger.
+        /// </summary>
+        private readonly ILogger<UpdateActiveFlightMessageActivity> logger;
+
         #endregion Private Fields
 
         #region Public Constructors
@@ -42,9 +49,13 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        public UpdateActiveFlightMessageActivity(DiscordSocketClient client)
+        /// <param name="logger">
+        /// The logger.
+        /// </param>
+        public UpdateActiveFlightMessageActivity(DiscordSocketClient client, ILogger<UpdateActiveFlightMessageActivity> logger)
         {
             this.client = client;
+            this.logger = logger;
         }
 
         #endregion Public Constructors
@@ -76,6 +87,8 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightStartingEvent> context, Behavior<FlightState, FlightStartingEvent> next)
         {
+            this.logger.LogInformation("Updating channel message for pilot data");
+
             await this.UpdateChannelMessage(
                 context.Instance.Origin,
                 context.Instance.Destination,
@@ -362,14 +375,6 @@
             if (voiceChannel == null)
                 throw new InvalidOperationException($"Unable to find a channel named 'flights'.");
 
-            // Edit the message
-            var embed = await FlightActiveEmbed.CreateEmbed(
-                            origin,
-                            destination,
-                            startTime,
-                            voiceChannel,
-                            vatsimData);
-
             var restMessage = await textChannel.GetMessageAsync((ulong)messageId) as RestUserMessage;
             var socketMessage = await textChannel.GetMessageAsync((ulong)messageId) as SocketUserMessage;
 
@@ -378,11 +383,57 @@
 
             if (restMessage != null)
             {
-                await restMessage.ModifyAsync(p => p.Embed = embed);
+                if (restMessage.EditedTimestamp.HasValue == false)
+                {
+                    // Edit the message
+                    var embed = await FlightActiveEmbed.CreateEmbed(
+                                    origin,
+                                    destination,
+                                    startTime,
+                                    voiceChannel,
+                                    vatsimData);
+
+                    await restMessage.ModifyAsync(p => p.Embed = embed);
+                }
+                else if (restMessage.EditedTimestamp.Value < DateTimeOffset.UtcNow.AddSeconds(-45))
+                {
+                    // Edit the message
+                    var embed = await FlightActiveEmbed.CreateEmbed(
+                                    origin,
+                                    destination,
+                                    startTime,
+                                    voiceChannel,
+                                    vatsimData);
+
+                    await restMessage.ModifyAsync(p => p.Embed = embed);
+                }
             }
             else
             {
-                await socketMessage.ModifyAsync(p => p.Embed = embed);
+                if (socketMessage.EditedTimestamp.HasValue == false)
+                {
+                    // Edit the message
+                    var embed = await FlightActiveEmbed.CreateEmbed(
+                                    origin,
+                                    destination,
+                                    startTime,
+                                    voiceChannel,
+                                    vatsimData);
+
+                    await socketMessage.ModifyAsync(p => p.Embed = embed);
+                }
+                else if (socketMessage.EditedTimestamp.Value < DateTimeOffset.UtcNow.AddSeconds(-45))
+                {
+                    // Edit the message
+                    var embed = await FlightActiveEmbed.CreateEmbed(
+                                    origin,
+                                    destination,
+                                    startTime,
+                                    voiceChannel,
+                                    vatsimData);
+
+                    await socketMessage.ModifyAsync(p => p.Embed = embed);
+                }
             }
         }
 

@@ -12,6 +12,8 @@
 
     using GreenPipes;
 
+    using Microsoft.Extensions.Logging;
+
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Models;
     using NFB.UI.DiscordBot.States;
@@ -28,6 +30,8 @@
         /// </summary>
         private readonly IMapper mapper;
 
+        private readonly ILogger<UpdateVatsimPilotDataActivity> logger;
+
         #endregion Private Fields
 
         #region Public Constructors
@@ -38,9 +42,13 @@
         /// <param name="mapper">
         /// The mapper.
         /// </param>
-        public UpdateVatsimPilotDataActivity(IMapper mapper)
+        /// <param name="logger">
+        /// The logger.
+        /// </param>
+        public UpdateVatsimPilotDataActivity(IMapper mapper, ILogger<UpdateVatsimPilotDataActivity> logger)
         {
             this.mapper = mapper;
+            this.logger = logger;
         }
 
         #endregion Public Constructors
@@ -72,6 +80,7 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, VatsimPilotUpdatedEvent> context, Behavior<FlightState, VatsimPilotUpdatedEvent> next)
         {
+            this.logger.LogInformation("Updating VatsimPilotData");
             var pilot = context.Instance.VatsimPilotData.FirstOrDefault(p => p.UserId == context.Data.UserId);
 
             if (pilot == null)

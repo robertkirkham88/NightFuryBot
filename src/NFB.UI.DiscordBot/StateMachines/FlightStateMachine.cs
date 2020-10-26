@@ -108,6 +108,7 @@
                         context => TimeSpan.FromMinutes(30)),
                 this.When(this.VatsimPilotUpdatedEvent)
                     .Activity(x => x.OfType<UpdateVatsimPilotDataActivity>())
+                    .Unschedule(this.UpdatePilotDataSchedule)
                     .Schedule(
                         this.UpdatePilotDataSchedule,
                         context => context.Init<UpdatePilotDataScheduleMessage>(
