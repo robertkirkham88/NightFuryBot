@@ -55,7 +55,7 @@
                             }),
                         context =>
                             {
-                                var startingTime = context.Data.StartTime.Add(TimeSpan.FromMinutes(-15));
+                                var startingTime = context.Data.StartTime.Add(TimeSpan.FromMinutes(-45));
 
                                 return startingTime <= DateTime.UtcNow ? DateTime.UtcNow.AddSeconds(5) : startingTime; // Slight delay due to message ordering.
                             }));
