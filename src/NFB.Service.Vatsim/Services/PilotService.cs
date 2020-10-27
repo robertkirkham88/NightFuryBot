@@ -72,7 +72,7 @@
             {
                 AutoReset = true,
                 Enabled = false,
-                Interval = 60000
+                Interval = 120000
             };
         }
 
