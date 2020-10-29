@@ -14,7 +14,6 @@
     using NFB.Domain.Bus.Commands;
     using NFB.Domain.Bus.Events;
     using NFB.Domain.Bus.Responses;
-    using NFB.Service.Flight.Consumers.Commands;
     using NFB.Service.Flight.Models;
     using NFB.Service.Flight.Persistence;
     using NFB.Service.Flight.Repository;

@@ -20,6 +20,7 @@
     using NFB.Domain.Settings;
     using NFB.Infrastructure.CrossCutting.Logging;
     using NFB.Ui.DiscordBot.Extensions;
+    using NFB.UI.DiscordBot.Models;
     using NFB.UI.DiscordBot.StateMachines;
     using NFB.UI.DiscordBot.States;
 
@@ -77,6 +78,9 @@
 
                             configureDelegate.AddCommandService();
                             configureDelegate.AddDiscordService();
+
+                            var channelSettings = configuration.GetSection("ChannelSettings").Get<ChannelSettings>();
+                            configureDelegate.RegisterInstance(channelSettings).SingleInstance();
 
                             var busSettings = configuration.GetSection("BusSettings").Get<BusSettings>();
                             configureDelegate.AddMassTransit(

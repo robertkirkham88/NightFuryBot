@@ -1,7 +1,6 @@
 ﻿namespace NFB.UI.DiscordBot.Activities
 {
     using System;
-    using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
 
@@ -14,12 +13,11 @@
 
     using Microsoft.Extensions.Logging;
 
-    using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
     using NFB.UI.DiscordBot.Extensions;
-    using NFB.UI.DiscordBot.Models;
     using NFB.UI.DiscordBot.Schedules;
+    using NFB.UI.DiscordBot.Services;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
@@ -28,6 +26,11 @@
     public class UpdateActiveFlightMessageActivity : Activity<FlightState, FlightStartingEvent>, Activity<FlightState, UserJoinedVoiceChannelEvent>, Activity<FlightState, UserLeftVoiceChannelEvent>, Activity<FlightState, UpdatePilotDataScheduleMessage>, Activity<FlightState, FlightCreatedEvent>
     {
         #region Private Fields
+
+        /// <summary>
+        /// The channel service.
+        /// </summary>
+        private readonly IChannelService channelService;
 
         /// <summary>
         /// The client.
@@ -52,10 +55,14 @@
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public UpdateActiveFlightMessageActivity(DiscordSocketClient client, ILogger<UpdateActiveFlightMessageActivity> logger)
+        /// <param name="channelService">
+        /// The channel service.
+        /// </param>
+        public UpdateActiveFlightMessageActivity(DiscordSocketClient client, ILogger<UpdateActiveFlightMessageActivity> logger, IChannelService channelService)
         {
             this.client = client;
             this.logger = logger;
+            this.channelService = channelService;
         }
 
         #endregion Public Constructors
@@ -89,13 +96,7 @@
         {
             this.logger.LogInformation("Updating channel message for pilot data");
 
-            await this.UpdateChannelMessage(
-                context.Instance.Origin,
-                context.Instance.Destination,
-                context.Instance.MessageId,
-                context.Instance.VoiceChannelUlongId,
-                context.Instance.StartTime,
-                context.Instance.VatsimPilotData);
+            await this.UpdateChannelMessage(context.Instance);
 
             await next.Execute(context);
         }
@@ -114,13 +115,7 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, UserJoinedVoiceChannelEvent> context, Behavior<FlightState, UserJoinedVoiceChannelEvent> next)
         {
-            await this.UpdateChannelMessage(
-                context.Instance.Origin,
-                context.Instance.Destination,
-                context.Instance.MessageId,
-                context.Instance.VoiceChannelUlongId,
-                context.Instance.StartTime,
-                context.Instance.VatsimPilotData);
+            await this.UpdateChannelMessage(context.Instance);
 
             context.Instance.UsersInVoiceChannel.Add(context.Data.UserId.ToGuid());
 
@@ -141,13 +136,7 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, UserLeftVoiceChannelEvent> context, Behavior<FlightState, UserLeftVoiceChannelEvent> next)
         {
-            await this.UpdateChannelMessage(
-                context.Instance.Origin,
-                context.Instance.Destination,
-                context.Instance.MessageId,
-                context.Instance.VoiceChannelUlongId,
-                context.Instance.StartTime,
-                context.Instance.VatsimPilotData);
+            await this.UpdateChannelMessage(context.Instance);
 
             if (context.Instance.UsersInVoiceChannel.Any(p => p == context.Data.UserId.ToGuid()))
                 context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId.ToGuid());
@@ -169,13 +158,7 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, UpdatePilotDataScheduleMessage> context, Behavior<FlightState, UpdatePilotDataScheduleMessage> next)
         {
-            await this.UpdateChannelMessage(
-                context.Instance.Origin,
-                context.Instance.Destination,
-                context.Instance.MessageId,
-                context.Instance.VoiceChannelUlongId,
-                context.Instance.StartTime,
-                context.Instance.VatsimPilotData);
+            await this.UpdateChannelMessage(context.Instance);
 
             await next.Execute(context);
         }
@@ -194,13 +177,7 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightCreatedEvent> context, Behavior<FlightState, FlightCreatedEvent> next)
         {
-            await this.UpdateChannelMessage(
-                context.Instance.Origin,
-                context.Instance.Destination,
-                context.Instance.MessageId,
-                context.Instance.VoiceChannelUlongId,
-                context.Instance.StartTime,
-                context.Instance.VatsimPilotData);
+            await this.UpdateChannelMessage(context.Instance);
 
             await next.Execute(context);
         }
@@ -326,60 +303,23 @@
         #region Private Methods
 
         /// <summary>
-        /// Update a channel message.
+        /// Update the channel message.
         /// </summary>
-        /// <param name="origin">
-        /// The origin.
-        /// </param>
-        /// <param name="destination">
-        /// The destination.
-        /// </param>
-        /// <param name="messageId">
-        /// The message id.
-        /// </param>
-        /// <param name="voiceChannelId">
-        /// The voice channel id.
-        /// </param>
-        /// <param name="startTime">
-        /// The start time.
-        /// </param>
-        /// <param name="vatsimData">
-        /// The vatsim data.
+        /// <param name="state">
+        /// The state.
         /// </param>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        private async Task UpdateChannelMessage(
-            AirportEntityDto origin,
-            AirportEntityDto destination,
-            ulong? messageId,
-            ulong? voiceChannelId,
-            DateTime startTime,
-            IList<VatsimPilotModel> vatsimData)
+        private async Task UpdateChannelMessage(FlightState state)
         {
-            if (messageId == null)
-                throw new InvalidOperationException("Message ID is null");
+            var channelData = await this.channelService.Get(state.RequestChannelId);
+            var category = this.client.Guilds.First().GetCategoryChannel(channelData.Category);
+            var voiceChannel = category.Channels.First(p => p.Id == state.VoiceChannelUlongId) as SocketVoiceChannel;
+            var announcementChannel = category.Channels.First(p => p.Id == channelData.AnnouncementChannel) as SocketTextChannel;
 
-            if (voiceChannelId == null)
-                throw new InvalidOperationException("Voice Channel ID is null");
-
-            // Get the channel
-            var guild = this.client.Guilds.FirstOrDefault();
-            var category = guild?.CategoryChannels.FirstOrDefault(p => p.Name == "flights");
-
-            var textChannel = category?.Channels.FirstOrDefault(p => p.Name == "flights") as SocketTextChannel;
-            if (textChannel == null)
-                throw new InvalidOperationException($"Unable to find a channel named 'flights'.");
-
-            var voiceChannel = category.Channels.FirstOrDefault(p => p.Id == voiceChannelId) as SocketVoiceChannel;
-            if (voiceChannel == null)
-                throw new InvalidOperationException($"Unable to find a channel named 'flights'.");
-
-            var restMessage = await textChannel.GetMessageAsync((ulong)messageId) as RestUserMessage;
-            var socketMessage = await textChannel.GetMessageAsync((ulong)messageId) as SocketUserMessage;
-
-            if (restMessage == null && socketMessage == null)
-                throw new InvalidOperationException($"Unable to find a message with ID {messageId}.");
+            var restMessage = await announcementChannel.GetMessageAsync((ulong)state.MessageId) as RestUserMessage;
+            var socketMessage = await announcementChannel.GetMessageAsync((ulong)state.MessageId) as SocketUserMessage;
 
             if (restMessage != null)
             {
@@ -387,11 +327,11 @@
                 {
                     // Edit the message
                     var embed = await FlightActiveEmbed.CreateEmbed(
-                                    origin,
-                                    destination,
-                                    startTime,
+                                    state.Origin,
+                                    state.Destination,
+                                    state.StartTime,
                                     voiceChannel,
-                                    vatsimData);
+                                    state.VatsimPilotData);
 
                     await restMessage.ModifyAsync(p => p.Embed = embed);
                 }
@@ -399,38 +339,38 @@
                 {
                     // Edit the message
                     var embed = await FlightActiveEmbed.CreateEmbed(
-                                    origin,
-                                    destination,
-                                    startTime,
+                                    state.Origin,
+                                    state.Destination,
+                                    state.StartTime,
                                     voiceChannel,
-                                    vatsimData);
+                                    state.VatsimPilotData);
 
                     await restMessage.ModifyAsync(p => p.Embed = embed);
                 }
             }
             else
             {
-                if (socketMessage.EditedTimestamp.HasValue == false)
+                if (socketMessage?.EditedTimestamp.HasValue == false)
                 {
                     // Edit the message
                     var embed = await FlightActiveEmbed.CreateEmbed(
-                                    origin,
-                                    destination,
-                                    startTime,
+                                    state.Origin,
+                                    state.Destination,
+                                    state.StartTime,
                                     voiceChannel,
-                                    vatsimData);
+                                    state.VatsimPilotData);
 
                     await socketMessage.ModifyAsync(p => p.Embed = embed);
                 }
-                else if (socketMessage.EditedTimestamp.Value < DateTimeOffset.UtcNow.AddSeconds(-45))
+                else if (socketMessage?.EditedTimestamp.Value < DateTimeOffset.UtcNow.AddSeconds(-45))
                 {
                     // Edit the message
                     var embed = await FlightActiveEmbed.CreateEmbed(
-                                    origin,
-                                    destination,
-                                    startTime,
+                                    state.Origin,
+                                    state.Destination,
+                                    state.StartTime,
                                     voiceChannel,
-                                    vatsimData);
+                                    state.VatsimPilotData);
 
                     await socketMessage.ModifyAsync(p => p.Embed = embed);
                 }

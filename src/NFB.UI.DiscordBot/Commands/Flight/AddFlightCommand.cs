@@ -7,8 +7,8 @@
 
     using MassTransit;
 
-    using NFB.Domain.Bus.Commands;
-    using NFB.Domain.Bus.Responses;
+    using NFB.Domain.Bus.Events;
+    using NFB.UI.DiscordBot.Services;
 
     /// <summary>
     /// Add a new flight.
@@ -18,9 +18,9 @@
         #region Private Fields
 
         /// <summary>
-        /// The request.
+        /// The channel service.
         /// </summary>
-        private readonly IRequestClient<CreateFlightCommand> request;
+        private readonly IChannelService channelService;
 
         #endregion Private Fields
 
@@ -32,13 +32,13 @@
         /// <param name="bus">
         /// The bus.
         /// </param>
-        /// <param name="request">
-        /// The request.
+        /// <param name="channelService">
+        /// The channel service.
         /// </param>
-        protected AddFlightCommand(IBus bus, IRequestClient<CreateFlightCommand> request)
+        protected AddFlightCommand(IBus bus, IChannelService channelService)
             : base(bus)
         {
-            this.request = request;
+            this.channelService = channelService;
         }
 
         #endregion Protected Constructors
@@ -76,29 +76,26 @@
              * If it is not in the future, it should display an error message.
              */
 
-            try
-            {
-                var (successful, failed) = await this.request.GetResponse<CreateFlightCommandSuccessResponse, CreateFlightCommandFailResponse>(
-                                               new CreateFlightCommand
-                                               {
-                                                   Destination = destination,
-                                                   Origin = origin,
-                                                   StartTime = startTime
-                                               });
+            var channel = await this.channelService.Get(this.Context.Message.Channel.Id);
 
-                if (successful.IsCompletedSuccessfully)
-                {
-                    await successful;
-                    return CommandResult.FromSuccess($"Adding a flight from {origin} to {destination} for {startTime.ToUniversalTime():s}.");
-                }
-
-                await failed;
-                return CommandResult.FromError($"Failed to add a flight from {origin} to {destination} for {startTime.ToUniversalTime():s}.");
-            }
-            catch (Exception ex)
+            if (channel == null)
             {
-                return CommandResult.FromError(ex.Message);
+                return CommandResult.FromError("It looks like you cannot book a flight from here! Please try again from one of the booking channels.");
             }
+
+            var message = new FlightSubmittedEvent
+            {
+                Id = Guid.NewGuid(),
+                Destination = destination,
+                Origin = origin,
+                StartTime = startTime,
+                RequestMessageId = this.Context.Message.Id,
+                RequestCategoryId = channel.Category,
+                RequestChannelId = channel.BookChannel
+            };
+            await this.Bus.Publish(message);
+
+            return CommandResult.FromSuccess($"Successfully booked a flight to {destination} from {origin} starting {startTime:g}");
         }
 
         #endregion Public Methods

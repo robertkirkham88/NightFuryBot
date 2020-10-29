@@ -5,8 +5,6 @@
 
     using MassTransit;
 
-    using Microsoft.EntityFrameworkCore;
-
     using NFB.Domain.Bus.Commands;
     using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Responses;
@@ -54,7 +52,7 @@
         /// </returns>
         public async Task Consume(ConsumeContext<GetFlightsCommand> context)
         {
-            var entities = await this.database.Flights.ToListAsync();
+            var entities = this.database.Flights.ToList();
 
             await context.RespondAsync(
                 new GetFlightsCommandResponse

@@ -8,7 +8,6 @@
 
     using MassTransit;
 
-    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
@@ -131,7 +130,7 @@
             {
                 var jsonData = new WebClient().DownloadString("http://cluster.data.vatsim.net/vatsim-data.json");
 
-                var databasePilotsIds = await this.database.Pilots.ToListAsync();
+                var databasePilotsIds = this.database.Pilots.ToList();
                 var onlinePilots = JsonConvert.DeserializeObject<PilotRootModel>(jsonData).Pilots;
 
                 foreach (var pilot in databasePilotsIds)

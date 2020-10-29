@@ -7,6 +7,7 @@
     using MassTransit;
 
     using NFB.Domain.Bus.Events;
+    using NFB.Service.Flight.Activities;
     using NFB.Service.Flight.Events;
     using NFB.Service.Flight.States;
 
@@ -26,6 +27,7 @@
             this.InstanceState(p => p.CurrentState);
 
             // Events
+            this.Event(() => this.FlightSubmittedEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.FlightCreatedEvent, x => x.CorrelateById(p => p.Message.Id));
 
             // Schedules
@@ -41,24 +43,27 @@
 
             // Work flow
             this.Initially(
-                this.When(this.FlightCreatedEvent)
-                    .TransitionTo(this.Created)
-                    .Schedule(
-                        this.FlightStartingSchedule,
-                        context => context.Init<FlightStarting>(
-                            new FlightStarting
-                            {
-                                Id = context.Data.Id,
-                                Origin = context.Data.Origin.ICAO,
-                                Destination = context.Data.Destination.ICAO,
-                                StartTime = context.Data.StartTime
-                            }),
-                        context =>
-                            {
-                                var startingTime = context.Data.StartTime.Add(TimeSpan.FromMinutes(-45));
+                this.When(this.FlightSubmittedEvent)
+                    .Activity(x => x.OfType<CreateFlightActivity>()
+                        .Schedule(
+                            this.FlightStartingSchedule,
+                            context => context.Init<FlightStarting>(
+                                new FlightStarting
+                                {
+                                    Id = context.Instance.CorrelationId,
+                                    Origin = context.Instance.Origin.ICAO,
+                                    Destination = context.Instance.Destination.ICAO,
+                                    StartTime = context.Data.StartTime
+                                }),
+                            context =>
+                                {
+                                    var startingTime = context.Instance.StartTime.Add(TimeSpan.FromMinutes(-45));
 
-                                return startingTime <= DateTime.UtcNow ? DateTime.UtcNow.AddSeconds(5) : startingTime; // Slight delay due to message ordering.
-                            }));
+                                    return startingTime <= DateTime.UtcNow ? DateTime.UtcNow.AddSeconds(5) : startingTime; // Slight delay due to message ordering.
+                                })
+                        .TransitionTo(this.Created)));
+
+            this.During(this.Created, this.Ignore(this.FlightCreatedEvent));
 
             this.During(
                 this.Created,
@@ -122,6 +127,11 @@
         /// Gets or sets the flight starting schedule.
         /// </summary>
         public Schedule<FlightState, FlightStarting> FlightStartingSchedule { get; set; }
+
+        /// <summary>
+        /// Gets or sets the flight submitted event.
+        /// </summary>
+        public Event<FlightSubmittedEvent> FlightSubmittedEvent { get; set; }
 
         /// <summary>
         /// Gets or sets the started.

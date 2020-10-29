@@ -20,9 +20,19 @@
         #region Public Properties
 
         /// <summary>
+        /// Gets or sets the announcement channel id.
+        /// </summary>
+        public ulong AnnouncementChannelId { get; set; }
+
+        /// <summary>
         /// Gets or sets the available colors.
         /// </summary>
         public IList<uint> AvailableColors { get; set; } = new List<uint>();
+
+        /// <summary>
+        /// Gets or sets the category id.
+        /// </summary>
+        public ulong CategoryId { get; set; }
 
         /// <summary>
         /// Gets or sets the check flight completed token.
@@ -54,6 +64,21 @@
         /// Gets or sets the origin.
         /// </summary>
         public AirportEntityDto Origin { get; set; }
+
+        /// <summary>
+        /// Gets or sets the original category id.
+        /// </summary>
+        public ulong RequestCategoryId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the request channel id.
+        /// </summary>
+        public ulong RequestChannelId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the original request.
+        /// </summary>
+        public ulong RequestMessageId { get; set; }
 
         /// <summary>
         /// Gets or sets the start time.

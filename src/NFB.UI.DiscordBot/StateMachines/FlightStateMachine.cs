@@ -32,8 +32,9 @@
             this.InstanceState(p => p.CurrentState);
 
             // Events
-            this.Event(() => this.FlightCompletedEvent, x => x.CorrelateById(p => p.Message.Id));
+            this.Event(() => this.FlightSubmittedEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.FlightCreatedEvent, x => x.CorrelateById(p => p.Message.Id));
+            this.Event(() => this.FlightCompletedEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.FlightStartingEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.UserJoinedVoiceChannelEvent, x => x.CorrelateBy(p => p.VoiceChannelId, p => p.Message.ChannelId.ToGuid()));
             this.Event(() => this.UserLeftVoiceChannelEvent, x => x.CorrelateBy(p => p.VoiceChannelId, p => p.Message.ChannelId.ToGuid()));
@@ -45,6 +46,18 @@
 
             // Work flow
             this.Initially(
+                this.When(this.FlightSubmittedEvent)
+                    .Then(
+                        (context) =>
+                            {
+                                context.Instance.RequestMessageId = context.Data.RequestMessageId;
+                                context.Instance.RequestCategoryId = context.Data.RequestCategoryId;
+                                context.Instance.RequestChannelId = context.Data.RequestChannelId;
+                            })
+                .TransitionTo(this.Submitted));
+
+            this.During(
+                this.Submitted,
                 this.When(this.FlightCreatedEvent)
                     .Activity(x => x.OfType<CreateDiscordChannelActivity>())
                     .TransitionTo(this.Created),
@@ -160,6 +173,16 @@
         /// Gets or sets the flight starting event.
         /// </summary>
         public Event<FlightStartingEvent> FlightStartingEvent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the flight submitted event.
+        /// </summary>
+        public Event<FlightSubmittedEvent> FlightSubmittedEvent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the submitted.
+        /// </summary>
+        public State Submitted { get; set; }
 
         /// <summary>
         /// Gets or sets the update pilot data in message.
