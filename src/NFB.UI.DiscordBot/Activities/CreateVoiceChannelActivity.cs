@@ -87,15 +87,16 @@
             var channelData = await this.channelService.Get(context.Instance.RequestChannelId);
 
             // Create the vault channel
-            var category = this.client.Guilds.First().GetCategoryChannel(channelData.Category);
+            var guild = this.client.Guilds.FirstOrDefault();
+            var category = guild?.GetCategoryChannel(channelData.Category);
             var channelName = $"{origin.ICAO}-{destination.ICAO}-{context.Instance.CorrelationId.ToString().Substring(0, 3)}";
-            var existingChannel = category.Channels.FirstOrDefault(p => p.Name == channelName);
+            var existingChannel = category?.Channels.FirstOrDefault(p => p.Name == channelName);
 
             if (existingChannel == null)
             {
                 var voiceChannel = await this.client.Guilds.First().CreateVoiceChannelAsync(
                                        channelName,
-                                       properties => { properties.CategoryId = category.Id; });
+                                       properties => { properties.CategoryId = category?.Id; });
 
                 context.Instance.VoiceChannelUlongId = voiceChannel.Id;
                 context.Instance.VoiceChannelId = voiceChannel.Id.ToGuid();

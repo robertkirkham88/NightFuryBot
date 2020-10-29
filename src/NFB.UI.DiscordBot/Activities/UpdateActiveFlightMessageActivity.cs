@@ -314,12 +314,29 @@
         private async Task UpdateChannelMessage(FlightState state)
         {
             var channelData = await this.channelService.Get(state.RequestChannelId);
-            var category = this.client.Guilds.First().GetCategoryChannel(channelData.Category);
-            var voiceChannel = category.Channels.First(p => p.Id == state.VoiceChannelUlongId) as SocketVoiceChannel;
-            var announcementChannel = category.Channels.First(p => p.Id == channelData.AnnouncementChannel) as SocketTextChannel;
 
-            var restMessage = await announcementChannel.GetMessageAsync((ulong)state.MessageId) as RestUserMessage;
-            var socketMessage = await announcementChannel.GetMessageAsync((ulong)state.MessageId) as SocketUserMessage;
+            if (channelData == null)
+                return;
+
+            var guild = this.client.Guilds.FirstOrDefault();
+            if (guild == null)
+                throw new InvalidOperationException("Guild cannot be null");
+
+            var category = guild.GetCategoryChannel(channelData.Category);
+
+            if (category == null)
+                throw new InvalidOperationException("Category cannot be null");
+
+            var voiceChannel = category?.Channels.First(p => p.Id == state.VoiceChannelUlongId) as SocketVoiceChannel;
+            if (voiceChannel == null)
+                throw new InvalidOperationException("Voice Channel cannot be null");
+
+            var announcementChannel = category?.Channels.First(p => p.Id == channelData.AnnouncementChannel) as SocketTextChannel;
+            if (announcementChannel == null)
+                throw new InvalidOperationException("Announcement channel cannot be null");
+
+            var restMessage = await announcementChannel?.GetMessageAsync((ulong)state.MessageId) as RestUserMessage;
+            var socketMessage = await announcementChannel?.GetMessageAsync((ulong)state.MessageId) as SocketUserMessage;
 
             if (restMessage != null)
             {
