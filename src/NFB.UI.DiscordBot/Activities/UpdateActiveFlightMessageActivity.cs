@@ -115,10 +115,9 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, UserJoinedVoiceChannelEvent> context, Behavior<FlightState, UserJoinedVoiceChannelEvent> next)
         {
-            await this.UpdateChannelMessage(context.Instance);
-
             context.Instance.UsersInVoiceChannel.Add(context.Data.UserId.ToGuid());
 
+            await this.UpdateChannelMessage(context.Instance, true);
             await next.Execute(context);
         }
 
@@ -136,11 +135,10 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, UserLeftVoiceChannelEvent> context, Behavior<FlightState, UserLeftVoiceChannelEvent> next)
         {
-            await this.UpdateChannelMessage(context.Instance);
-
             if (context.Instance.UsersInVoiceChannel.Any(p => p == context.Data.UserId.ToGuid()))
                 context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId.ToGuid());
 
+            await this.UpdateChannelMessage(context.Instance, true);
             await next.Execute(context);
         }
 
@@ -308,10 +306,13 @@
         /// <param name="state">
         /// The state.
         /// </param>
+        /// <param name="forceUpdate">
+        /// The force update.
+        /// </param>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        private async Task UpdateChannelMessage(FlightState state)
+        private async Task UpdateChannelMessage(FlightState state, bool forceUpdate = false)
         {
             var channelData = await this.channelService.Get(state.RequestChannelId);
 
@@ -352,7 +353,7 @@
 
                     await restMessage.ModifyAsync(p => p.Embed = embed);
                 }
-                else if (restMessage.EditedTimestamp.Value < DateTimeOffset.UtcNow.AddSeconds(-45))
+                else if (restMessage.EditedTimestamp.Value < DateTimeOffset.UtcNow.AddSeconds(-45) || forceUpdate)
                 {
                     // Edit the message
                     var embed = await FlightActiveEmbed.CreateEmbed(
@@ -379,7 +380,7 @@
 
                     await socketMessage.ModifyAsync(p => p.Embed = embed);
                 }
-                else if (socketMessage?.EditedTimestamp.Value < DateTimeOffset.UtcNow.AddSeconds(-45))
+                else if (socketMessage?.EditedTimestamp.Value < DateTimeOffset.UtcNow.AddSeconds(-45) || forceUpdate)
                 {
                     // Edit the message
                     var embed = await FlightActiveEmbed.CreateEmbed(
