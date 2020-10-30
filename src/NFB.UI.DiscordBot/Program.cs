@@ -94,7 +94,7 @@
                                             .MongoDbRepository(
                                                 r =>
                                                     {
-                                                        r.Connection = "mongodb://nfb.mongo";
+                                                        r.Connection = "mongodb://mongo";
                                                         r.DatabaseName = "discord-bot-flights";
                                                     });
 

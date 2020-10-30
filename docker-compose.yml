@@ -1,66 +1,66 @@
 version: '3.4'
 
 services:
-    nfb.ui.api:
-        image: ${DOCKER_REGISTRY-}nfbuiapi
+    api:
+        image: localhost:7000/nfbuiapi
         build:
             context: .
             dockerfile: src/NFB.UI.Api/Dockerfile
         networks:
-            - nfb.networks.bus
-            - nfb.networks.database
-            - nfb.networks.logging
+            - busnetwork
+            - databasenetwork
+            - loggingnetwork
         depends_on:
-            - nfb.rabbitmq
-            - nfb.logging
-            - nfb.database
+            - rabbitmq
+            - logging
+            - database
 
-    nfb.ui.discordbot:
-        image: ${DOCKER_REGISTRY-}nfbuidiscordbot
+    discordbot:
+        image: localhost:7000/nfbuidiscordbot
         build:
             context: .
             dockerfile: src/NFB.UI.DiscordBot/Dockerfile
         environment:
             BotToken: ""
         networks:
-            - nfb.networks.bus
-            - nfb.networks.database
-            - nfb.networks.logging
+            - busnetwork
+            - databasenetwork
+            - loggingnetwork
         depends_on:
-            - nfb.rabbitmq
-            - nfb.logging
-            - nfb.database
+            - rabbitmq
+            - logging
+            - database
 
-    nfb.service.flight:
-        image: ${DOCKER_REGISTRY-}nfbserviceflight
+    serviceflight:
+        image: localhost:7000/nfbserviceflight
         build:
             context: .
             dockerfile: src/NFB.Service.Flight/Dockerfile
         networks:
-            - nfb.networks.bus
-            - nfb.networks.database
-            - nfb.networks.logging
+            - busnetwork
+            - databasenetwork
+            - loggingnetwork
         depends_on:
-            - nfb.rabbitmq
-            - nfb.logging
-            - nfb.database
+            - rabbitmq
+            - logging
+            - database
 
-    nfb.service.vatsim:
-        image: ${DOCKER_REGISTRY-}nfbservicevatsim
+    servicevatsim:
+        image: localhost:7000/nfbservicevatsim
         build:
             context: .
             dockerfile: src/NFB.Service.Vatsim/Dockerfile
         networks:
-            - nfb.networks.bus
-            - nfb.networks.database
-            - nfb.networks.logging
+            - busnetwork
+            - databasenetwork
+            - loggingnetwork
         depends_on:
-            - nfb.rabbitmq
-            - nfb.logging
-            - nfb.database
+            - rabbitmq
+            - logging
+            - database
 
-    nfb.rabbitmq:
-        image: ${DOCKER_REGISTRY-}nfbrabbitmq
+    rabbitmq:
+        image: localhost:7000/nfbrabbitmq
         build:
             context: .
             dockerfile: RabbitMqDockerfile
@@ -68,60 +68,60 @@ services:
             - "5672"
             - "6100:15672"
         networks:
-            - nfb.networks.bus
+            - busnetwork
         environment:
             - RABBITMQ_DEFAULT_USER=rabbitmquser
             - RABBITMQ_DEFAULT_PASS=k6G4LdPttQL2DvnH
 
-    nfb.mongo:
+    mongo:
         image: mongo
         environment:
             ME_CONFIG_MONGODB_ADMINUSERNAME: root
             ME_CONFIG_MONGODB_ADMINPASSWORD: z1Tf3U9io5ufol
         volumes:
-            - C:\docker\nfb.mongo\data:/data/db
+            - C:\docker\nfb-dev\nfb.mongo\data:/data/db
         networks:
-            - nfb.networks.database
+            - databasenetwork
 
-    nfb.mongo.admin:
+    mongoadmin:
         image: mongo-express
         ports:
             - "6103:8081"
         environment:
             ME_CONFIG_MONGODB_ADMINUSERNAME: root
             ME_CONFIG_MONGODB_ADMINPASSWORD: z1Tf3U9io5ufol
-            ME_CONFIG_MONGODB_SERVER: nfb.mongo
+            ME_CONFIG_MONGODB_SERVER: mongo
         networks:
-            - nfb.networks.database
+            - databasenetwork
 
-    nfb.logging:
+    logging:
         image: datalust/seq
         networks:
-            - nfb.networks.logging
+            - loggingnetwork
         environment:
             - ACCEPT_EULA=Y
         ports:
             - "6101:80"
             - "5341"
 
-    nfb.database:
+    database:
         image: postgres:latest
         volumes:
-            - C:\docker\nfb.database\var\lib\postgresql\data:/var/lib/postgresql/data
+            - C:\docker\nfb-dev\nfb.database\var\lib\postgresql\data:/var/lib/postgresql/data
         environment:
             POSTGRES_USER: dbuser
             POSTGRES_PASSWORD: z1Tf3U9io5ufol
         networks:
-            - nfb.networks.database
+            - databasenetwork
 
-    nfb.database.admin:
+    databaseadmin:
         image: adminer
         ports:
             - "6102:8080"
         networks:
-            - nfb.networks.database
+            - databasenetwork
 
 networks:
-    nfb.networks.bus:
-    nfb.networks.logging:
-    nfb.networks.database:
+    busnetwork:
+    loggingnetwork:
+    databasenetwork:
