@@ -50,7 +50,7 @@
                                      {
                                          var pilot = vatsimData.FirstOrDefault(m => m.UserId == p.Id);
 
-                                         if (pilot == null)
+                                         if (pilot == null || pilot.Status == "Offline")
                                          {
                                              return $"- {p.Nickname ?? p.Username}";
                                          }
@@ -73,7 +73,7 @@
                 var voiceChannelUsers = await voiceChannel.GetUsersAsync().FlattenAsync();
                 var pilotMapData = string.Join(
                     "%7C%7C",
-                    vatsimData.Select(
+                    vatsimData.Where(p => p.Status == "Online").Select(
                         p =>
                             $"{p.Latitude},{p.Longitude}%7Cmarker-{ColorToHex(new Color(p.AssignedColor))}-{GetPilotMarker(voiceChannelUsers, p.UserId)}"));
                 var url =

@@ -152,8 +152,17 @@
                                 FlightHeading = isOnline.Heading,
                                 FlightAltitude = isOnline.Altitude,
                                 FlightSpeed = isOnline.GroundSpeed,
-                                UserId = ulong.Parse(pilot.UserId)
+                                UserId = ulong.Parse(pilot.UserId),
+                                Status = "Online"
                             });
+                    }
+                    else
+                    {
+                        await this.bus.Publish(new VatsimPilotUpdatedEvent
+                        {
+                            UserId = ulong.Parse(pilot.UserId),
+                            Status = "Offline"
+                        });
                     }
                 }
             }
