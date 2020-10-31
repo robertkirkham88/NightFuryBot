@@ -8,9 +8,12 @@
     using Discord.Commands;
     using Discord.WebSocket;
 
+    using MassTransit;
+
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
+    using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Commands;
 
     /// <summary>
@@ -19,6 +22,11 @@
     public class DiscordCommandService : IHostedService
     {
         #region Private Fields
+
+        /// <summary>
+        /// The bus scheduler.
+        /// </summary>
+        private readonly IMessageScheduler busScheduler;
 
         /// <summary>
         /// The client.
@@ -64,12 +72,16 @@
         /// <param name="serviceProvider">
         /// The service Provider.
         /// </param>
-        public DiscordCommandService(ILogger<DiscordCommandService> logger, CommandService commandService, DiscordSocketClient client, IServiceProvider serviceProvider)
+        /// <param name="busScheduler">
+        /// The bus Scheduler.
+        /// </param>
+        public DiscordCommandService(ILogger<DiscordCommandService> logger, CommandService commandService, DiscordSocketClient client, IServiceProvider serviceProvider, IMessageScheduler busScheduler)
         {
             this.logger = logger;
             this.commandService = commandService;
             this.client = client;
             this.serviceProvider = serviceProvider;
+            this.busScheduler = busScheduler;
         }
 
         #endregion Public Constructors
@@ -195,6 +207,15 @@
 
                         if (this.IsCommand(context, Prefix, out var argPos))
                         {
+                            await this.busScheduler.SchedulePublish(
+                                DateTime.UtcNow.AddSeconds(30),
+                                new DiscordMessageExpiredEvent
+                                {
+                                    ChannelId = context.Message.Channel.Id,
+                                    MessageId = context.Message.Id
+                                },
+                                this.token);
+
                             this.logger.LogInformation($"{context.Message.Author} executed '{context.Message.Content.Substring(argPos)}'");
                             await this.ExecuteAsync(context, this.serviceProvider, context.Message.Content.Substring(argPos));
                         }
@@ -228,8 +249,21 @@
                     await context.User.SendMessageAsync(parseResult.DirectMessage.Message ?? string.Empty, embed: parseResult.DirectMessage.Embed);
 
                 // Context message.
-                if (parseResult.ContextMessage != null && (context.Channel.GetType().ToString() == "Discord.WebSocket.SocketTextChannel" || parseResult.DirectMessage == null))
-                    await context.Channel.SendMessageAsync(parseResult.ContextMessage.Message ?? string.Empty, embed: parseResult.ContextMessage.Embed);
+                if (parseResult.ContextMessage != null
+                    && (context.Channel.GetType().ToString() == "Discord.WebSocket.SocketTextChannel"
+                        || parseResult.DirectMessage == null))
+                {
+                    var message = await context.Channel.SendMessageAsync(parseResult.ContextMessage.Message ?? string.Empty, embed: parseResult.ContextMessage.Embed);
+
+                    await this.busScheduler.SchedulePublish(
+                        DateTime.UtcNow.AddSeconds(10),
+                        new DiscordMessageExpiredEvent
+                        {
+                            ChannelId = message.Channel.Id,
+                            MessageId = message.Id
+                        },
+                        this.token);
+                }
 
                 if (parseResult.Error != null)
                     this.logger.LogWarning($"'{command.Value.Name}' Error for {context.Message.Author}: {parseResult.LogMessage ?? "(No log message)"}");

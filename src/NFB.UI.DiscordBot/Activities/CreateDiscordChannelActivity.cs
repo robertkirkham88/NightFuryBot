@@ -11,6 +11,8 @@
 
     using GreenPipes;
 
+    using MassTransit;
+
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
     using NFB.UI.DiscordBot.States;
@@ -21,6 +23,11 @@
     public class CreateDiscordChannelActivity : Activity<FlightState, FlightCreatedEvent>
     {
         #region Private Fields
+
+        /// <summary>
+        /// The bus scheduler.
+        /// </summary>
+        private readonly IMessageScheduler busScheduler;
 
         /// <summary>
         /// The client.
@@ -37,9 +44,13 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        public CreateDiscordChannelActivity(DiscordSocketClient client)
+        /// <param name="busScheduler">
+        /// The bus Scheduler.
+        /// </param>
+        public CreateDiscordChannelActivity(DiscordSocketClient client, IMessageScheduler busScheduler)
         {
             this.client = client;
+            this.busScheduler = busScheduler;
         }
 
         #endregion Public Constructors
@@ -101,7 +112,15 @@
 
             if (this.client.GetChannel(context.Instance.ChannelData.BookChannel) is ITextChannel discordChannel)
             {
-                await discordChannel.SendMessageAsync($"Successfully created a new flight from {context.Instance.Origin.ICAO} to {context.Instance.Destination.ICAO} for {context.Instance.StartTime:g}");
+                var sentMessage = await discordChannel.SendMessageAsync($"Successfully created a new flight from {context.Instance.Origin.ICAO} to {context.Instance.Destination.ICAO} for {context.Instance.StartTime:g}");
+
+                await this.busScheduler.SchedulePublish(
+                    DateTime.UtcNow.AddSeconds(30),
+                    new DiscordMessageExpiredEvent
+                    {
+                        ChannelId = sentMessage.Channel.Id,
+                        MessageId = sentMessage.Id
+                    });
             }
 
             await next.Execute(context);
