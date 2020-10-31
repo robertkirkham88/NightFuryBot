@@ -88,6 +88,9 @@
 
             var voiceChannelId = context.Instance.VoiceChannelUlongId;
 
+            if (voiceChannelId != null && voiceChannel != null && voiceChannel.Users.Any())
+                await next.Execute(context);
+
             if (context.Instance.MessageId != null && announcementChannel != null)
             {
                 var restMessage = await announcementChannel.GetMessageAsync((ulong)context.Instance.MessageId) as RestUserMessage;
@@ -96,13 +99,8 @@
                 socketMessage?.DeleteAsync();
             }
 
-            if (voiceChannelId != null && voiceChannel != null)
-            {
-                var users = voiceChannel.Users;
-
-                if (!users.Any())
-                    await voiceChannel.DeleteAsync();
-            }
+            if (voiceChannel != null)
+                await voiceChannel.DeleteAsync();
 
             await context.Publish(new FlightCompletedEvent { Id = context.Instance.CorrelationId });
             await next.Execute(context);
