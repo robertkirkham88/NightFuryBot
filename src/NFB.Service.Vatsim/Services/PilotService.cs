@@ -130,16 +130,13 @@
             {
                 var jsonData = new WebClient().DownloadString("http://cluster.data.vatsim.net/vatsim-data.json");
 
-                foreach (var entry in this.database.Pilots)
-                {
-                    this.database.Entry(entry).Reload();
-                }
-
-                var databasePilotsIds = this.database.Pilots.ToList();
+                var databasePilotsIds = await this.database.Pilots.ToListAsync();
                 var onlinePilots = JsonConvert.DeserializeObject<PilotRootModel>(jsonData).Pilots;
 
                 foreach (var pilot in databasePilotsIds)
                 {
+                    await this.database.Entry(pilot).ReloadAsync();
+
                     var isOnline = onlinePilots.FirstOrDefault(p => p.Cid == pilot.VatsimId);
 
                     if (isOnline != null)
