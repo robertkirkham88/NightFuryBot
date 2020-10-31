@@ -13,7 +13,6 @@
 
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Schedules;
-    using NFB.UI.DiscordBot.Services;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
@@ -22,11 +21,6 @@
     public class CheckFlightCompletedActivity : Activity<FlightState, CheckFlightCompletedScheduleMessage>
     {
         #region Private Fields
-
-        /// <summary>
-        /// The channel service.
-        /// </summary>
-        private readonly IChannelService channelService;
 
         /// <summary>
         /// The client.
@@ -43,13 +37,9 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        /// <param name="channelService">
-        /// The channel service.
-        /// </param>
-        public CheckFlightCompletedActivity(DiscordSocketClient client, IChannelService channelService)
+        public CheckFlightCompletedActivity(DiscordSocketClient client)
         {
             this.client = client;
-            this.channelService = channelService;
         }
 
         #endregion Public Constructors
@@ -81,20 +71,19 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, CheckFlightCompletedScheduleMessage> context, Behavior<FlightState, CheckFlightCompletedScheduleMessage> next)
         {
-            var channelData = await this.channelService.Get(context.Instance.RequestChannelId);
-            var category = this.client.Guilds.First().GetCategoryChannel(channelData.Category);
-            var voiceChannel = category.Channels.First(p => p.Id == context.Instance.VoiceChannelUlongId) as SocketVoiceChannel;
-            var announcementChannel = category.Channels.First(p => p.Id == channelData.AnnouncementChannel) as SocketTextChannel;
+            var voiceChannel = this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) as SocketVoiceChannel;
+            var activeChannel = this.client.GetChannel(context.Instance.ChannelData.ActiveFlightMessageChannel) as SocketTextChannel;
 
-            var voiceChannelId = context.Instance.VoiceChannelUlongId;
-
-            if (voiceChannelId != null && voiceChannel != null && voiceChannel.Users.Any())
-                await next.Execute(context);
-
-            if (context.Instance.MessageId != null && announcementChannel != null)
+            if (voiceChannel != null && voiceChannel.Users.Any())
             {
-                var restMessage = await announcementChannel.GetMessageAsync((ulong)context.Instance.MessageId) as RestUserMessage;
-                var socketMessage = await announcementChannel.GetMessageAsync((ulong)context.Instance.MessageId) as SocketUserMessage;
+                await next.Execute(context);
+                return;
+            }
+
+            if (activeChannel != null)
+            {
+                var restMessage = await activeChannel.GetMessageAsync(context.Instance.ActiveFlightMessageId) as RestUserMessage;
+                var socketMessage = await activeChannel.GetMessageAsync(context.Instance.ActiveFlightMessageId) as SocketUserMessage;
                 restMessage?.DeleteAsync();
                 socketMessage?.DeleteAsync();
             }

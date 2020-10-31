@@ -68,7 +68,7 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightInvalidEvent> context, Behavior<FlightState, FlightInvalidEvent> next)
         {
-            if (this.client.GetChannel(context.Instance.RequestChannelId) is SocketTextChannel channel)
+            if (this.client.GetChannel(context.Instance.ChannelData.BookChannel) is SocketTextChannel channel)
             {
                 await channel.SendMessageAsync(context.Data.ValidationError);
             }

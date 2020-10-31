@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading.Tasks;
 
     using Automatonymous;
@@ -14,7 +13,6 @@
 
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
-    using NFB.UI.DiscordBot.Services;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
@@ -23,11 +21,6 @@
     public class CreateDiscordChannelActivity : Activity<FlightState, FlightCreatedEvent>
     {
         #region Private Fields
-
-        /// <summary>
-        /// The channel service.
-        /// </summary>
-        private readonly IChannelService channelService;
 
         /// <summary>
         /// The client.
@@ -44,13 +37,9 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        /// <param name="channelService">
-        /// The channel Service.
-        /// </param>
-        public CreateDiscordChannelActivity(DiscordSocketClient client, IChannelService channelService)
+        public CreateDiscordChannelActivity(DiscordSocketClient client)
         {
             this.client = client;
-            this.channelService = channelService;
         }
 
         #endregion Public Constructors
@@ -87,14 +76,12 @@
             var origin = context.Data.Origin;
             var startTime = context.Data.StartTime;
 
-            var channelData = await this.channelService.Get(context.Instance.RequestChannelId);
-            var announcementChannel = this.client.GetChannel(channelData.AnnouncementChannel) as SocketTextChannel;
+            var announcementChannel = this.client.GetChannel(context.Instance.ChannelData.AnnouncementChannel) as SocketTextChannel;
             var embed = FlightCreatedEmbed.CreateEmbed(origin, destination, startTime);
             if (announcementChannel != null)
             {
                 var message = await announcementChannel.SendMessageAsync(embed: embed);
-
-                context.Instance.MessageId = message.Id;
+                context.Instance.AnnouncementMessageId = message.Id;
             }
 
             context.Instance.Destination = context.Data.Destination;
@@ -112,11 +99,9 @@
                                                        Color.LightGrey.RawValue
                                                    };
 
-            var discordChannel = this.client.GetChannel(context.Instance.RequestChannelId) as ITextChannel;
-            if (discordChannel != null)
+            if (this.client.GetChannel(context.Instance.ChannelData.BookChannel) is ITextChannel discordChannel)
             {
-                await discordChannel.SendMessageAsync(
-                    $"Successfully created a new flight from {context.Instance.Origin.ICAO} to {context.Instance.Destination.ICAO} for {context.Instance.StartTime:g}");
+                await discordChannel.SendMessageAsync($"Successfully created a new flight from {context.Instance.Origin.ICAO} to {context.Instance.Destination.ICAO} for {context.Instance.StartTime:g}");
             }
 
             await next.Execute(context);
@@ -140,20 +125,12 @@
         public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightCreatedEvent, TException> context, Behavior<FlightState, FlightCreatedEvent> next)
             where TException : Exception
         {
-            if (context.Instance.MessageId != null)
+            // Get the channel
+            if (this.client.GetChannel(context.Instance.ChannelData.AnnouncementChannel) is SocketTextChannel announcementChannel)
             {
-                // Variables
-                var messageId = (ulong)context.Instance.MessageId;
-
-                // Get the channel
-                var guild = this.client.Guilds.FirstOrDefault();
-                var category = guild?.CategoryChannels.FirstOrDefault(p => p.Name == "flights");
-
-                if (!(category?.Channels.FirstOrDefault(p => p.Name == "flights") is SocketTextChannel channel))
-                    throw new InvalidOperationException($"Unable to find a channel named 'flights'.");
-
-                var message = await channel.GetMessageAsync(messageId);
-                await message.DeleteAsync();
+                var message = await announcementChannel.GetMessageAsync(context.Instance.AnnouncementMessageId);
+                if (message != null)
+                    await message.DeleteAsync();
             }
 
             await next.Faulted(context);

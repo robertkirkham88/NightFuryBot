@@ -1,12 +1,9 @@
-﻿namespace NFB.UI.DiscordBot.Entities
+﻿namespace NFB.Domain.Bus.DTOs
 {
-    using MongoDB.Bson;
-    using MongoDB.Bson.Serialization.Attributes;
-
     /// <summary>
-    /// The channel entity.
+    /// The channel entity data transfer object.
     /// </summary>
-    public class ChannelEntity
+    public class ChannelEntityDto
     {
         #region Public Properties
 
@@ -33,8 +30,6 @@
         /// <summary>
         /// Gets or sets the id.
         /// </summary>
-        [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
         public string Id { get; set; }
 
         #endregion Public Properties

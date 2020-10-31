@@ -8,6 +8,7 @@
 
     using MassTransit;
 
+    using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Services;
 
@@ -94,8 +95,14 @@
                 Origin = origin,
                 StartTime = startTime,
                 RequestMessageId = this.Context.Message.Id,
-                RequestCategoryId = channel.Category,
-                RequestChannelId = channel.BookChannel
+                ChannelData = new ChannelEntityDto
+                {
+                    ActiveFlightMessageChannel = channel.ActiveFlightMessageChannel,
+                    AnnouncementChannel = channel.AnnouncementChannel,
+                    BookChannel = channel.BookChannel,
+                    Category = channel.Category,
+                    Id = channel.Id
+                }
             };
 
             await this.Bus.Publish(message);

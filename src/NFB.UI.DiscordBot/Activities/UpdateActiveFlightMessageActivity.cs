@@ -17,7 +17,6 @@
     using NFB.UI.DiscordBot.Embeds;
     using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.Schedules;
-    using NFB.UI.DiscordBot.Services;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
@@ -26,11 +25,6 @@
     public class UpdateActiveFlightMessageActivity : Activity<FlightState, FlightStartingEvent>, Activity<FlightState, UserJoinedVoiceChannelEvent>, Activity<FlightState, UserLeftVoiceChannelEvent>, Activity<FlightState, UpdatePilotDataScheduleMessage>, Activity<FlightState, FlightCreatedEvent>
     {
         #region Private Fields
-
-        /// <summary>
-        /// The channel service.
-        /// </summary>
-        private readonly IChannelService channelService;
 
         /// <summary>
         /// The client.
@@ -55,14 +49,10 @@
         /// <param name="logger">
         /// The logger.
         /// </param>
-        /// <param name="channelService">
-        /// The channel service.
-        /// </param>
-        public UpdateActiveFlightMessageActivity(DiscordSocketClient client, ILogger<UpdateActiveFlightMessageActivity> logger, IChannelService channelService)
+        public UpdateActiveFlightMessageActivity(DiscordSocketClient client, ILogger<UpdateActiveFlightMessageActivity> logger)
         {
             this.client = client;
             this.logger = logger;
-            this.channelService = channelService;
         }
 
         #endregion Public Constructors
@@ -314,30 +304,18 @@
         /// </returns>
         private async Task UpdateChannelMessage(FlightState state, bool forceUpdate = false)
         {
-            var channelData = await this.channelService.Get(state.RequestChannelId);
-
-            if (channelData == null)
-                return;
-
             var guild = this.client.Guilds.FirstOrDefault();
             if (guild == null)
                 throw new InvalidOperationException("Guild cannot be null");
 
-            var category = guild.GetCategoryChannel(channelData.Category);
-
-            if (category == null)
-                throw new InvalidOperationException("Category cannot be null");
-
-            var voiceChannel = category?.Channels.First(p => p.Id == state.VoiceChannelUlongId) as SocketVoiceChannel;
-            if (voiceChannel == null)
+            if (!(guild.GetChannel(state.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel voiceChannel))
                 throw new InvalidOperationException("Voice Channel cannot be null");
 
-            var announcementChannel = category?.Channels.First(p => p.Id == channelData.AnnouncementChannel) as SocketTextChannel;
-            if (announcementChannel == null)
-                throw new InvalidOperationException("Announcement channel cannot be null");
+            if (!(guild.GetChannel(state.ChannelData.ActiveFlightMessageChannel) is SocketTextChannel activeFlightChannel))
+                throw new InvalidOperationException("Active flight channel cannot be null");
 
-            var restMessage = await announcementChannel?.GetMessageAsync((ulong)state.MessageId) as RestUserMessage;
-            var socketMessage = await announcementChannel?.GetMessageAsync((ulong)state.MessageId) as SocketUserMessage;
+            var restMessage = await activeFlightChannel.GetMessageAsync(state.ActiveFlightMessageId) as RestUserMessage;
+            var socketMessage = await activeFlightChannel.GetMessageAsync(state.ActiveFlightMessageId) as SocketUserMessage;
 
             if (restMessage != null)
             {
@@ -366,9 +344,9 @@
                     await restMessage.ModifyAsync(p => p.Embed = embed);
                 }
             }
-            else
+            else if (socketMessage != null)
             {
-                if (socketMessage?.EditedTimestamp.HasValue == false)
+                if (socketMessage.EditedTimestamp.HasValue == false)
                 {
                     // Edit the message
                     var embed = await FlightActiveEmbed.CreateEmbed(
@@ -380,7 +358,7 @@
 
                     await socketMessage.ModifyAsync(p => p.Embed = embed);
                 }
-                else if (socketMessage?.EditedTimestamp.Value < DateTimeOffset.UtcNow.AddSeconds(-45) || forceUpdate)
+                else if (socketMessage.EditedTimestamp.Value < DateTimeOffset.UtcNow.AddSeconds(-45) || forceUpdate)
                 {
                     // Edit the message
                     var embed = await FlightActiveEmbed.CreateEmbed(

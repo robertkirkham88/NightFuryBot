@@ -26,11 +26,14 @@
         #region Private Fields
 
         /// <summary>
+        /// The logger.
+        /// </summary>
+        private readonly ILogger<UpdateVatsimPilotDataActivity> logger;
+
+        /// <summary>
         /// The mapper.
         /// </summary>
         private readonly IMapper mapper;
-
-        private readonly ILogger<UpdateVatsimPilotDataActivity> logger;
 
         #endregion Private Fields
 

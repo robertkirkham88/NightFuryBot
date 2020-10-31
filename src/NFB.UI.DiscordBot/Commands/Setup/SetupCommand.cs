@@ -49,30 +49,42 @@
         /// <param name="announcementChannel">
         /// The announcement Channel.
         /// </param>
+        /// <param name="activeFlightChannel">
+        /// The channel where the active flight message is going to be located.
+        /// </param>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
         [Command]
         [Name("Setup")]
-        public async Task<RuntimeResult> ExecuteAsync(SocketTextChannel announcementChannel)
+        public async Task<RuntimeResult> ExecuteAsync(SocketTextChannel announcementChannel, SocketTextChannel activeFlightChannel)
         {
             var existingChannel = await this.channelService.Get(this.Context.Channel.Id);
 
             if (existingChannel == null)
             {
                 // new channel
-                var entity = new ChannelEntity { BookChannel = this.Context.Channel.Id, AnnouncementChannel = announcementChannel.Id, Category = announcementChannel.Category.Id };
+                var entity = new ChannelEntity
+                {
+                    BookChannel = this.Context.Channel.Id,
+                    AnnouncementChannel = announcementChannel.Id,
+                    Category = announcementChannel.Category.Id,
+                    ActiveFlightMessageChannel = activeFlightChannel.Id
+                };
+
                 await this.channelService.Create(entity);
             }
             else
             {
                 existingChannel.AnnouncementChannel = announcementChannel.Id;
                 existingChannel.Category = announcementChannel.Category.Id;
+                existingChannel.ActiveFlightMessageChannel = activeFlightChannel.Id;
+
                 await this.channelService.Update(existingChannel.Id, existingChannel);
             }
 
             return CommandResult.FromSuccess(
-                $"Successfully set the announcement channel as {announcementChannel.Name} and the category parent as {announcementChannel.Category.Name}");
+                $"Successfully set the announcement channel as {announcementChannel.Name}, active flight message channel as {activeFlightChannel.Name}.");
         }
 
         #endregion Public Methods

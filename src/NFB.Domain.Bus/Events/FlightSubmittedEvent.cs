@@ -2,6 +2,7 @@
 {
     using System;
 
+    using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Models;
 
     /// <summary>
@@ -10,6 +11,16 @@
     public class FlightSubmittedEvent : BaseEvent
     {
         #region Public Properties
+
+        /// <summary>
+        /// Gets or sets the active message flight channel id.
+        /// </summary>
+        public ulong ActiveFlightMessageChannelId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the channel data.
+        /// </summary>
+        public ChannelEntityDto ChannelData { get; set; }
 
         /// <summary>
         /// Gets or sets the destination.

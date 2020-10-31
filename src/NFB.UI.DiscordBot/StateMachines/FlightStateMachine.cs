@@ -51,9 +51,8 @@
                     .Then(
                         (context) =>
                             {
+                                context.Instance.ChannelData = context.Data.ChannelData;
                                 context.Instance.RequestMessageId = context.Data.RequestMessageId;
-                                context.Instance.RequestCategoryId = context.Data.RequestCategoryId;
-                                context.Instance.RequestChannelId = context.Data.RequestChannelId;
                             })
                 .TransitionTo(this.Submitted));
 
@@ -72,12 +71,12 @@
                 this.Created,
                 this.When(this.FlightStartingEvent)
                     .Activity(x => x.OfType<CreateVoiceChannelActivity>())
-                    .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
+                    .Activity(x => x.OfType<CreateActiveFlightMessageActivity>())
                     .Schedule(
                         this.CheckFlightCompletedSchedule,
                         context => context.Init<CheckFlightCompletedScheduleMessage>(
                             new CheckFlightCompletedScheduleMessage { Id = context.Instance.CorrelationId }),
-                        context => context.Instance.StartTime.AddHours(1))
+                        context => context.Instance.StartTime.AddSeconds(30))
                     .TransitionTo(this.Active),
                 this.When(this.FlightCreatedEvent)
                     .Activity(x => x.OfType<CreateDiscordChannelActivity>())
@@ -87,7 +86,7 @@
                         this.CheckFlightCompletedSchedule,
                         context => context.Init<CheckFlightCompletedScheduleMessage>(
                             new CheckFlightCompletedScheduleMessage { Id = context.Instance.CorrelationId }),
-                        context => context.Instance.StartTime.AddHours(1))
+                        context => context.Instance.StartTime.AddSeconds(30))
                     .TransitionTo(this.Active));
 
             this.During(
@@ -122,7 +121,7 @@
                         this.CheckFlightCompletedSchedule,
                         context => context.Init<CheckFlightCompletedScheduleMessage>(
                             new CheckFlightCompletedScheduleMessage { Id = context.Instance.CorrelationId }),
-                        context => TimeSpan.FromMinutes(30)),
+                        context => TimeSpan.FromSeconds(30)),
                 this.When(this.VatsimPilotUpdatedEvent)
                     .Activity(x => x.OfType<UpdateVatsimPilotDataActivity>())
                     .Unschedule(this.UpdatePilotDataSchedule)
