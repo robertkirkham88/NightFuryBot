@@ -339,7 +339,8 @@
                                     state.Destination,
                                     state.StartTime,
                                     voiceChannel,
-                                    state.VatsimPilotData);
+                                    state.VatsimPilotData,
+                                    forceUpdate ? restMessage.Embeds.First().Image : null);
 
                     await restMessage.ModifyAsync(p => p.Embed = embed);
                 }
@@ -366,7 +367,8 @@
                                     state.Destination,
                                     state.StartTime,
                                     voiceChannel,
-                                    state.VatsimPilotData);
+                                    state.VatsimPilotData,
+                                    forceUpdate ? socketMessage.Embeds.First().Image : null);
 
                     await socketMessage.ModifyAsync(p => p.Embed = embed);
                 }

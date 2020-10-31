@@ -37,10 +37,13 @@
         /// <param name="vatsimData">
         /// The vatsim Data.
         /// </param>
+        /// <param name="existingImage">
+        /// The existing Image.
+        /// </param>
         /// <returns>
         /// The <see cref="Embed"/>.
         /// </returns>
-        public static async Task<Embed> CreateEmbed(AirportEntityDto origin, AirportEntityDto destination, DateTime startTime, IGuildChannel voiceChannel, IList<VatsimPilotModel> vatsimData)
+        public static async Task<Embed> CreateEmbed(AirportEntityDto origin, AirportEntityDto destination, DateTime startTime, IGuildChannel voiceChannel, IList<VatsimPilotModel> vatsimData, EmbedImage? existingImage = null)
         {
             var embedBuilder = new EmbedBuilder { Color = Color.Green, Title = $"{origin.Name} to {destination.Name}" };
             var usersInChannel = await voiceChannel.GetUsersAsync().FlattenAsync();
@@ -66,6 +69,12 @@
             embedBuilder.AddField("Destination", destination.ICAO, true);
             embedBuilder.AddField("Planned departure time", $"{startTime:g} UTC");
             embedBuilder.AddField("Pilots", pilotsText);
+
+            if (existingImage.HasValue)
+            {
+                embedBuilder.ImageUrl = existingImage.GetValueOrDefault().Url;
+                return embedBuilder.Build();
+            }
 
             if (!vatsimData.Any()) return embedBuilder.Build();
             try
