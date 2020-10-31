@@ -130,6 +130,11 @@
             {
                 var jsonData = new WebClient().DownloadString("http://cluster.data.vatsim.net/vatsim-data.json");
 
+                foreach (var entry in this.database.Pilots)
+                {
+                    this.database.Entry(entry).Reload();
+                }
+
                 var databasePilotsIds = this.database.Pilots.ToList();
                 var onlinePilots = JsonConvert.DeserializeObject<PilotRootModel>(jsonData).Pilots;
 
