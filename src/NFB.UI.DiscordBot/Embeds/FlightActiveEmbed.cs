@@ -59,9 +59,10 @@
                                          }
 
                                          var remainingDistance = GetRemainingDistance(destination, vatsimData, p.Id);
-                                         var eta = GetRemainingTime(remainingDistance, pilot.FlightSpeed);
+                                         var etaTime = GetRemainingTime(remainingDistance, pilot.FlightSpeed);
+                                         var eta = pilot.FlightSpeed < 100 ? "N/A" : $"{etaTime:HHmm}";
 
-                                         return $"- {p.Nickname ?? p.Username} (Dist: {remainingDistance}nm, Hdg: {pilot.FlightHeading}, Spd: {pilot.FlightSpeed}, Alt: {pilot.FlightAltitude}, ETA: {eta:HHmm})";
+                                         return $"- {p.Nickname ?? p.Username} (Dist: {remainingDistance}nm, Hdg: {pilot.FlightHeading}, Spd: {pilot.FlightSpeed}, Alt: {pilot.FlightAltitude}, ETA: {eta})";
                                      }));
 
             embedBuilder.AddField("Status", "Started");
