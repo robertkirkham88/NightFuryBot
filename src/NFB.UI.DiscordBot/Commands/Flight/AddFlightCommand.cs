@@ -14,9 +14,16 @@
     /// <summary>
     /// Add a new flight.
     /// </summary>
-    public class AddFlightCommand : BaseFlightCommand
+    [Group("flight")]
+    [Alias("f")]
+    public class AddFlightCommand : ModuleBase
     {
         #region Private Fields
+
+        /// <summary>
+        /// The bus.
+        /// </summary>
+        private readonly IBus bus;
 
         /// <summary>
         /// The channel service.
@@ -25,7 +32,7 @@
 
         #endregion Private Fields
 
-        #region Protected Constructors
+        #region Public Constructors
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AddFlightCommand"/> class.
@@ -36,13 +43,13 @@
         /// <param name="channelService">
         /// The channel service.
         /// </param>
-        protected AddFlightCommand(IBus bus, IChannelService channelService)
-            : base(bus)
+        public AddFlightCommand(IBus bus, IChannelService channelService)
         {
+            this.bus = bus;
             this.channelService = channelService;
         }
 
-        #endregion Protected Constructors
+        #endregion Public Constructors
 
         #region Public Methods
 
@@ -104,7 +111,7 @@
                 }
             };
 
-            await this.Bus.Publish(message);
+            await this.bus.Publish(message);
         }
 
         #endregion Public Methods

@@ -13,7 +13,9 @@
     /// <summary>
     /// The register vatsim id command.
     /// </summary>
-    public class RegisterVatsimIdCommand : BaseVatsimCommand
+    [Group("vatsim")]
+    [Alias("v")]
+    public class RegisterVatsimIdCommand : ModuleBase
     {
         #region Private Fields
 
@@ -24,24 +26,20 @@
 
         #endregion Private Fields
 
-        #region Protected Constructors
+        #region Public Constructors
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RegisterVatsimIdCommand"/> class.
         /// </summary>
-        /// <param name="bus">
-        /// The bus.
-        /// </param>
         /// <param name="request">
         /// The request.
         /// </param>
-        protected RegisterVatsimIdCommand(IBus bus, IRequestClient<RegisterVatsimCommand> request)
-            : base(bus)
+        public RegisterVatsimIdCommand(IRequestClient<RegisterVatsimCommand> request)
         {
             this.request = request;
         }
 
-        #endregion Protected Constructors
+        #endregion Public Constructors
 
         #region Public Methods
 

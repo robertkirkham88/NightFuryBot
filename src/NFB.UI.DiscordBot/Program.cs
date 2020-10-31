@@ -74,7 +74,7 @@
                 .ConfigureContainer<ContainerBuilder>(
                     (builderContext, configureDelegate) =>
                         {
-                            configureDelegate.AddAutoMapper(Assembly.GetExecutingAssembly());
+                            configureDelegate.RegisterAutoMapper(Assembly.GetExecutingAssembly());
 
                             configureDelegate.AddCommandService();
                             configureDelegate.AddDiscordService();
