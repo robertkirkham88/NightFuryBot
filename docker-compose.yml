@@ -1,20 +1,6 @@
 version: '3.4'
 
 services:
-    api:
-        image: localhost:7000/nfbuiapi
-        build:
-            context: .
-            dockerfile: src/NFB.UI.Api/Dockerfile
-        networks:
-            - busnetwork
-            - databasenetwork
-            - loggingnetwork
-        depends_on:
-            - rabbitmq
-            - logging
-            - database
-
     discordbot:
         image: localhost:7000/nfbuidiscordbot
         build:
