@@ -44,8 +44,27 @@
             // Work flow
             this.Initially(
                 this.When(this.FlightSubmittedEvent)
-                    .Activity(x => x.OfType<CreateFlightActivity>()
-                        .Schedule(
+                    .Activity(x => x.OfType<CreateFlightActivity>())
+                        .TransitionTo(this.Created)
+                        .Catch<InvalidOperationException>(
+                            ex =>
+                                ex.Then(
+                                    context =>
+                                        {
+                                            var message = new FlightInvalidEvent
+                                            {
+                                                Id = context.Instance.CorrelationId,
+                                                ValidationError = context.Exception.Message
+                                            };
+                                            context.Publish(message);
+                                        })
+                                    .Finalize()));
+
+            this.WhenEnter(
+                this.Created,
+                e =>
+                    {
+                        return e.Schedule(
                             this.FlightStartingSchedule,
                             context => context.Init<FlightStarting>(
                                 new FlightStarting
@@ -53,15 +72,17 @@
                                     Id = context.Instance.CorrelationId,
                                     Origin = context.Instance.Origin.ICAO,
                                     Destination = context.Instance.Destination.ICAO,
-                                    StartTime = context.Data.StartTime
+                                    StartTime = context.Instance.StartTime
                                 }),
                             context =>
                                 {
                                     var startingTime = context.Instance.StartTime.Add(TimeSpan.FromMinutes(-45));
 
-                                    return startingTime <= DateTime.UtcNow ? DateTime.UtcNow.AddSeconds(5) : startingTime; // Slight delay due to message ordering.
-                                })
-                        .TransitionTo(this.Created)));
+                                    return startingTime <= DateTime.UtcNow
+                                               ? DateTime.UtcNow.AddSeconds(5)
+                                               : startingTime; // Slight delay due to message ordering.
+                                });
+                    });
 
             this.During(this.Created, this.Ignore(this.FlightCreatedEvent));
 
@@ -112,6 +133,8 @@
         /// Gets or sets the created.
         /// </summary>
         public State Created { get; set; }
+
+        public State Faulted { get; set; }
 
         /// <summary>
         /// Gets or sets the flight created event.

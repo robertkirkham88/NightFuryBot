@@ -33,6 +33,7 @@
 
             // Events
             this.Event(() => this.FlightSubmittedEvent, x => x.CorrelateById(p => p.Message.Id));
+            this.Event(() => this.FlightInvalidEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.FlightCreatedEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.FlightCompletedEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.FlightStartingEvent, x => x.CorrelateById(p => p.Message.Id));
@@ -61,6 +62,9 @@
                 this.When(this.FlightCreatedEvent)
                     .Activity(x => x.OfType<CreateDiscordChannelActivity>())
                     .TransitionTo(this.Created),
+                this.When(this.FlightInvalidEvent)
+                    .Activity(x => x.OfType<FlightSubmissionFailedActivity>())
+                    .Finalize(),
                 this.When(this.FlightStartingEvent)
                     .TransitionTo(this.Created));
 
@@ -168,6 +172,11 @@
         /// Gets or sets the flight created event.
         /// </summary>
         public Event<FlightCreatedEvent> FlightCreatedEvent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the flight invalid event.
+        /// </summary>
+        public Event<FlightInvalidEvent> FlightInvalidEvent { get; set; }
 
         /// <summary>
         /// Gets or sets the flight starting event.

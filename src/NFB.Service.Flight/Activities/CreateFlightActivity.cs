@@ -75,6 +75,15 @@
             context.Instance.Origin = originAirport;
             context.Instance.StartTime = context.Data.StartTime;
 
+            if (context.Instance.Destination == null)
+                throw new InvalidOperationException($"The airport destination cannot be found ({context.Data.Destination})");
+
+            if (context.Instance.Origin == null)
+                throw new InvalidOperationException($"The origin airport cannot be found ({context.Data.Origin})");
+
+            if (context.Instance.StartTime < DateTime.UtcNow.AddSeconds(15))
+                throw new InvalidOperationException($"The start time must be at least 15 seconds in the future");
+
             await context.Publish(new FlightCreatedEvent
             {
                 Destination = new AirportEntityDto { ICAO = destinationAirport.ICAO, Latitude = destinationAirport.Latitude, Longitude = destinationAirport.Longitude, Name = destinationAirport.Name },
