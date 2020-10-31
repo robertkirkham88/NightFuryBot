@@ -10,6 +10,8 @@
 
     using GreenPipes;
 
+    using MassTransit;
+
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.States;
@@ -26,6 +28,11 @@
         /// </summary>
         private readonly DiscordSocketClient client;
 
+        /// <summary>
+        /// The message scheduler.
+        /// </summary>
+        private readonly IMessageScheduler messageScheduler;
+
         #endregion Private Fields
 
         #region Public Constructors
@@ -36,9 +43,13 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        public CreateVoiceChannelActivity(DiscordSocketClient client)
+        /// <param name="messageScheduler">
+        /// The message Scheduler.
+        /// </param>
+        public CreateVoiceChannelActivity(DiscordSocketClient client, IMessageScheduler messageScheduler)
         {
             this.client = client;
+            this.messageScheduler = messageScheduler;
         }
 
         #endregion Public Constructors
@@ -113,7 +124,7 @@
         public async Task Execute(BehaviorContext<FlightState, FlightCreatedEvent> context, Behavior<FlightState, FlightCreatedEvent> next)
         {
             // Activity
-            var activity = new CreateDiscordChannelActivity(this.client);
+            var activity = new CreateDiscordChannelActivity(this.client, this.messageScheduler);
 
             // Execute
             await activity.Execute(context, next);
@@ -169,7 +180,7 @@
             where TException : Exception
         {
             // Activity
-            var activity = new CreateDiscordChannelActivity(this.client);
+            var activity = new CreateDiscordChannelActivity(this.client, this.messageScheduler);
 
             // Faulted
             await activity.Faulted(context, next);
