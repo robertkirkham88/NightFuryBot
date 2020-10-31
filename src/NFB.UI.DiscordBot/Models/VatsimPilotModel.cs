@@ -13,6 +13,11 @@
         public uint AssignedColor { get; set; }
 
         /// <summary>
+        /// Gets or sets the call sign.
+        /// </summary>
+        public string CallSign { get; set; }
+
+        /// <summary>
         /// Gets or sets the destination airport.
         /// </summary>
         public string DestinationAirport { get; set; }

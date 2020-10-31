@@ -152,6 +152,7 @@
                                 FlightHeading = isOnline.Heading,
                                 FlightAltitude = isOnline.Altitude,
                                 FlightSpeed = isOnline.GroundSpeed,
+                                CallSign = isOnline.Callsign,
                                 UserId = ulong.Parse(pilot.UserId),
                                 Status = "Online"
                             });

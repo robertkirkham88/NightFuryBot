@@ -62,7 +62,7 @@
                                          var etaTime = GetRemainingTime(remainingDistance, pilot.FlightSpeed);
                                          var eta = pilot.FlightSpeed < 100 ? "N/A" : $"{etaTime:HHmm}";
 
-                                         return $"- {p.Nickname ?? p.Username} (Dist: {remainingDistance}nm, Hdg: {pilot.FlightHeading}, Spd: {pilot.FlightSpeed}, Alt: {pilot.FlightAltitude}, ETA: {eta})";
+                                         return $"- {p.Nickname ?? p.Username} - {pilot.CallSign} (Dist: {remainingDistance}nm, Hdg: {pilot.FlightHeading}, Spd: {pilot.FlightSpeed}, Alt: {pilot.FlightAltitude}, ETA: {eta})";
                                      }));
 
             embedBuilder.AddField("Status", "Started");
