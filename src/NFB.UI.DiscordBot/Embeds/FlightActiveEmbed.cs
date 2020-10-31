@@ -70,12 +70,6 @@
             embedBuilder.AddField("Planned departure time", $"{startTime:g} UTC");
             embedBuilder.AddField("Pilots", pilotsText);
 
-            if (existingImage.HasValue)
-            {
-                embedBuilder.ImageUrl = existingImage.GetValueOrDefault().Url;
-                return embedBuilder.Build();
-            }
-
             if (!vatsimData.Any()) return embedBuilder.Build();
             try
             {
