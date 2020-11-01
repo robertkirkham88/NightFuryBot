@@ -1,12 +1,12 @@
 ﻿namespace NFB.UI.DiscordBot.Activities
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
+
+    using AutoMapper;
 
     using Automatonymous;
 
-    using Discord;
     using Discord.WebSocket;
 
     using GreenPipes;
@@ -15,6 +15,7 @@
 
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
+    using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
@@ -34,6 +35,11 @@
         /// </summary>
         private readonly DiscordSocketClient client;
 
+        /// <summary>
+        /// The mapper.
+        /// </summary>
+        private readonly IMapper mapper;
+
         #endregion Private Fields
 
         #region Public Constructors
@@ -47,10 +53,14 @@
         /// <param name="busScheduler">
         /// The bus Scheduler.
         /// </param>
-        public CreateDiscordChannelActivity(DiscordSocketClient client, IMessageScheduler busScheduler)
+        /// <param name="mapper">
+        /// The mapper.
+        /// </param>
+        public CreateDiscordChannelActivity(DiscordSocketClient client, IMessageScheduler busScheduler, IMapper mapper)
         {
             this.client = client;
             this.busScheduler = busScheduler;
+            this.mapper = mapper;
         }
 
         #endregion Public Constructors
@@ -82,46 +92,25 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightCreatedEvent> context, Behavior<FlightState, FlightCreatedEvent> next)
         {
-            // Variables
-            var destination = context.Data.Destination;
-            var origin = context.Data.Origin;
-            var startTime = context.Data.StartTime;
+            this.mapper.Map(context.Data, context.Instance);
 
-            var announcementChannel = this.client.GetChannel(context.Instance.ChannelData.AnnouncementChannel) as SocketTextChannel;
-            var embed = FlightCreatedEmbed.CreateEmbed(origin, destination, startTime);
-            if (announcementChannel != null)
-            {
-                var message = await announcementChannel.SendMessageAsync(embed: embed);
-                context.Instance.AnnouncementMessageId = message.Id;
-            }
+            var message = await this.client.SendMessageToChannelAsync(
+                              context.Instance.ChannelData.AnnouncementChannel,
+                              embed: FlightCreatedEmbed.CreateEmbed(context.Instance.Origin, context.Instance.Destination, context.Instance.StartTime));
 
-            context.Instance.Destination = context.Data.Destination;
-            context.Instance.Origin = context.Data.Origin;
-            context.Instance.StartTime = context.Data.StartTime;
-            context.Instance.AvailableColors = new List<uint>
-                                                   {
-                                                       Color.Blue.RawValue,
-                                                       Color.Gold.RawValue,
-                                                       Color.Magenta.RawValue,
-                                                       Color.Teal.RawValue,
-                                                       Color.Orange.RawValue,
-                                                       Color.Purple.RawValue,
-                                                       Color.LightOrange.RawValue,
-                                                       Color.LightGrey.RawValue
-                                                   };
+            context.Instance.AnnouncementMessageId = message.Id;
 
-            if (this.client.GetChannel(context.Instance.ChannelData.BookChannel) is ITextChannel discordChannel)
-            {
-                var sentMessage = await discordChannel.SendMessageAsync($"Successfully created a new flight from {context.Instance.Origin.ICAO} to {context.Instance.Destination.ICAO} for {context.Instance.StartTime:g}");
+            var response = await this.client.SendMessageToChannelAsync(
+                               context.Instance.ChannelData.BookChannel,
+                               $"Successfully created a new flight from {context.Instance.Origin.ICAO} to {context.Instance.Destination.ICAO} for {context.Instance.StartTime:g}");
 
-                await this.busScheduler.SchedulePublish(
-                    DateTime.UtcNow.AddSeconds(30),
-                    new DiscordMessageExpiredEvent
-                    {
-                        ChannelId = sentMessage.Channel.Id,
-                        MessageId = sentMessage.Id
-                    });
-            }
+            await this.busScheduler.SchedulePublish(
+                DateTime.UtcNow.AddSeconds(30),
+                new DiscordMessageExpiredEvent
+                {
+                    ChannelId = response.Channel.Id,
+                    MessageId = response.Id
+                });
 
             await next.Execute(context);
         }

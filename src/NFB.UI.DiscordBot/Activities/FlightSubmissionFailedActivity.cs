@@ -9,6 +9,8 @@
 
     using GreenPipes;
 
+    using MassTransit;
+
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.States;
 
@@ -24,6 +26,11 @@
         /// </summary>
         private readonly DiscordSocketClient client;
 
+        /// <summary>
+        /// The scheduler.
+        /// </summary>
+        private readonly IMessageScheduler scheduler;
+
         #endregion Private Fields
 
         #region Public Constructors
@@ -34,9 +41,13 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        public FlightSubmissionFailedActivity(DiscordSocketClient client)
+        /// <param name="scheduler">
+        /// The scheduler.
+        /// </param>
+        public FlightSubmissionFailedActivity(DiscordSocketClient client, IMessageScheduler scheduler)
         {
             this.client = client;
+            this.scheduler = scheduler;
         }
 
         #endregion Public Constructors
@@ -70,7 +81,11 @@
         {
             if (this.client.GetChannel(context.Instance.ChannelData.BookChannel) is SocketTextChannel channel)
             {
-                await channel.SendMessageAsync(context.Data.ValidationError);
+                var message = await channel.SendMessageAsync(context.Data.ValidationError);
+
+                await this.scheduler.SchedulePublish(
+                    DateTime.UtcNow.AddSeconds(30),
+                    new DiscordMessageExpiredEvent { ChannelId = message.Channel.Id, MessageId = message.Id });
             }
 
             await next.Execute(context);

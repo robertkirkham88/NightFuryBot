@@ -11,6 +11,7 @@
 
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
+    using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
@@ -70,17 +71,11 @@
         public async Task Execute(BehaviorContext<FlightState, FlightStartingEvent> context, Behavior<FlightState, FlightStartingEvent> next)
         {
             if (!(this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel voiceChannel))
-                throw new InvalidOperationException("Voice Channel cannot be null");
+                throw new ArgumentNullException($"Voice channel with ID {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} not found.");
 
-            if (!(this.client.GetChannel(context.Instance.ChannelData.ActiveFlightMessageChannel) is SocketTextChannel activeFlightChannel))
-                throw new InvalidOperationException("Active flight channel cannot be null");
-
-            if (!(this.client.GetChannel(context.Instance.ChannelData.AnnouncementChannel) is SocketTextChannel announcementChannel))
-                throw new InvalidOperationException("The announcement text channel cannot be null");
-
-            // Delete the old announcement message, the flight is now active.
-            if (await announcementChannel.GetMessageAsync(context.Instance.AnnouncementMessageId) is SocketUserMessage announcementMessage)
-                await announcementMessage.DeleteAsync();
+            await this.client.DeleteMessageFromChannelAsync(
+                context.Instance.ChannelData.AnnouncementChannel,
+                context.Instance.AnnouncementMessageId);
 
             // Create a new message.
             var embed = await FlightActiveEmbed.CreateEmbed(
@@ -90,7 +85,10 @@
                             voiceChannel,
                             context.Instance.VatsimPilotData);
 
-            var message = await activeFlightChannel.SendMessageAsync(embed: embed);
+            var message = await this.client.SendMessageToChannelAsync(
+                              context.Instance.ChannelData.ActiveFlightMessageChannel,
+                              embed: embed);
+
             context.Instance.ActiveFlightMessageId = message.Id;
 
             await next.Execute(context);

@@ -1,17 +1,19 @@
 ﻿namespace NFB.UI.DiscordBot.Activities
 {
     using System;
-    using System.Linq;
     using System.Threading.Tasks;
 
     using Automatonymous;
 
-    using Discord.Rest;
     using Discord.WebSocket;
 
     using GreenPipes;
 
+    using Microsoft.Extensions.Logging;
+
     using NFB.Domain.Bus.Events;
+    using NFB.UI.DiscordBot.Exceptions;
+    using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.Schedules;
     using NFB.UI.DiscordBot.States;
 
@@ -27,6 +29,11 @@
         /// </summary>
         private readonly DiscordSocketClient client;
 
+        /// <summary>
+        /// The logger.
+        /// </summary>
+        private readonly ILogger logger;
+
         #endregion Private Fields
 
         #region Public Constructors
@@ -37,9 +44,13 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        public CheckFlightCompletedActivity(DiscordSocketClient client)
+        /// <param name="logger">
+        /// The logger.
+        /// </param>
+        public CheckFlightCompletedActivity(DiscordSocketClient client, ILogger<CheckFlightCompletedActivity> logger)
         {
             this.client = client;
+            this.logger = logger;
         }
 
         #endregion Public Constructors
@@ -71,25 +82,29 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, CheckFlightCompletedScheduleMessage> context, Behavior<FlightState, CheckFlightCompletedScheduleMessage> next)
         {
-            var voiceChannel = this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) as SocketVoiceChannel;
-            var activeChannel = this.client.GetChannel(context.Instance.ChannelData.ActiveFlightMessageChannel) as SocketTextChannel;
-
-            if (voiceChannel != null && voiceChannel.Users.Any())
+            try
             {
-                await next.Execute(context);
+                // If the voice channel has been removed successfully.
+                if (await this.client.DeleteVoiceChannelAsync(context.Instance.VoiceChannelUlongId.GetValueOrDefault()))
+                {
+                    await this.client.DeleteMessageFromChannelAsync(
+                        context.Instance.ChannelData.ActiveFlightMessageChannel,
+                        context.Instance.ActiveFlightMessageId);
+                }
+                else
+                {
+                    await next.Execute(context);
+                    return;
+                }
+            }
+            catch (VoiceChannelNotEmptyException)
+            {
                 return;
             }
-
-            if (activeChannel != null)
+            catch (Exception ex)
             {
-                var restMessage = await activeChannel.GetMessageAsync(context.Instance.ActiveFlightMessageId) as RestUserMessage;
-                var socketMessage = await activeChannel.GetMessageAsync(context.Instance.ActiveFlightMessageId) as SocketUserMessage;
-                restMessage?.DeleteAsync();
-                socketMessage?.DeleteAsync();
+                this.logger.LogWarning(ex.ToString());
             }
-
-            if (voiceChannel != null)
-                await voiceChannel.DeleteAsync();
 
             await context.Publish(new FlightCompletedEvent { Id = context.Instance.CorrelationId });
             await next.Execute(context);

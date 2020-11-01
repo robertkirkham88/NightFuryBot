@@ -101,6 +101,11 @@
         public Guid? VoiceChannelId { get; set; }
 
         /// <summary>
+        /// The voice channel name.
+        /// </summary>
+        public string VoiceChannelName => $"{this.Origin.ICAO}-{this.Destination.ICAO}-{this.CorrelationId.ToString().Substring(0, 3)}";
+
+        /// <summary>
         /// Gets or sets the voice channel ulong id.
         /// </summary>
         public ulong? VoiceChannelUlongId { get; set; }

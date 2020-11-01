@@ -1,7 +1,6 @@
 ﻿namespace NFB.UI.DiscordBot.Activities
 {
     using System;
-    using System.Linq;
     using System.Threading.Tasks;
 
     using Automatonymous;
@@ -9,8 +8,6 @@
     using Discord.WebSocket;
 
     using GreenPipes;
-
-    using MassTransit;
 
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Extensions;
@@ -28,11 +25,6 @@
         /// </summary>
         private readonly DiscordSocketClient client;
 
-        /// <summary>
-        /// The message scheduler.
-        /// </summary>
-        private readonly IMessageScheduler messageScheduler;
-
         #endregion Private Fields
 
         #region Public Constructors
@@ -43,13 +35,9 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        /// <param name="messageScheduler">
-        /// The message Scheduler.
-        /// </param>
-        public CreateVoiceChannelActivity(DiscordSocketClient client, IMessageScheduler messageScheduler)
+        public CreateVoiceChannelActivity(DiscordSocketClient client)
         {
             this.client = client;
-            this.messageScheduler = messageScheduler;
         }
 
         #endregion Public Constructors
@@ -81,29 +69,21 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightStartingEvent> context, Behavior<FlightState, FlightStartingEvent> next)
         {
-            // Variables
-            var destination = context.Instance.Destination;
-            var origin = context.Instance.Origin;
+            var existingVoiceChannel = this.client.GetChannel(p => p.Name == context.Instance.VoiceChannelName);
 
-            // Create the vault channel
-            var guild = this.client.Guilds.FirstOrDefault();
-            var category = guild?.GetCategoryChannel(context.Instance.ChannelData.Category);
-            var channelName = $"{origin.ICAO}-{destination.ICAO}-{context.Instance.CorrelationId.ToString().Substring(0, 3)}";
-            var existingChannel = category?.Channels.FirstOrDefault(p => p.Name == channelName);
-
-            if (existingChannel == null)
+            if (existingVoiceChannel == null)
             {
-                var voiceChannel = await this.client.Guilds.First().CreateVoiceChannelAsync(
-                                       channelName,
-                                       properties => { properties.CategoryId = context.Instance.ChannelData.Category; });
+                var voiceChannel = await this.client.CreateVoiceChannelAsync(
+                                       context.Instance.ChannelData.Category,
+                                       context.Instance.VoiceChannelName);
 
                 context.Instance.VoiceChannelUlongId = voiceChannel.Id;
                 context.Instance.VoiceChannelId = voiceChannel.Id.ToGuid();
             }
             else
             {
-                context.Instance.VoiceChannelUlongId = existingChannel.Id;
-                context.Instance.VoiceChannelId = existingChannel.Id.ToGuid();
+                context.Instance.VoiceChannelUlongId = existingVoiceChannel.Id;
+                context.Instance.VoiceChannelId = existingVoiceChannel.Id.ToGuid();
             }
 
             await next.Execute(context);
@@ -123,11 +103,24 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightCreatedEvent> context, Behavior<FlightState, FlightCreatedEvent> next)
         {
-            // Activity
-            var activity = new CreateDiscordChannelActivity(this.client, this.messageScheduler);
+            var existingVoiceChannel = this.client.GetChannel(p => p.Name == context.Instance.VoiceChannelName);
 
-            // Execute
-            await activity.Execute(context, next);
+            if (existingVoiceChannel == null)
+            {
+                var voiceChannel = await this.client.CreateVoiceChannelAsync(
+                                       context.Instance.ChannelData.Category,
+                                       context.Instance.VoiceChannelName);
+
+                context.Instance.VoiceChannelUlongId = voiceChannel.Id;
+                context.Instance.VoiceChannelId = voiceChannel.Id.ToGuid();
+            }
+            else
+            {
+                context.Instance.VoiceChannelUlongId = existingVoiceChannel.Id;
+                context.Instance.VoiceChannelId = existingVoiceChannel.Id.ToGuid();
+            }
+
+            await next.Execute(context);
         }
 
         /// <summary>
@@ -148,15 +141,9 @@
         public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightStartingEvent, TException> context, Behavior<FlightState, FlightStartingEvent> next)
             where TException : Exception
         {
-            var channelName = $"{context.Instance.Origin.ICAO}-{context.Instance.Destination.ICAO}-{context.Instance.CorrelationId.ToString().Substring(0, 3)}";
-            var guild = this.client.Guilds.FirstOrDefault();
-            var category = guild?.CategoryChannels.FirstOrDefault(p => p.Id == context.Instance.ChannelData.Category);
-
-            var voiceChannel = category?.Channels.FirstOrDefault(
-                p => p.Id == context.Instance.VoiceChannelUlongId.GetValueOrDefault() || p.Name == channelName);
-
+            var voiceChannel = this.client.GetChannel(p => p.Name == context.Instance.VoiceChannelName);
             if (voiceChannel != null)
-                await voiceChannel.DeleteAsync();
+                await this.client.DeleteVoiceChannelAsync(voiceChannel.Id);
 
             await next.Faulted(context);
         }
@@ -179,11 +166,11 @@
         public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightCreatedEvent, TException> context, Behavior<FlightState, FlightCreatedEvent> next)
             where TException : Exception
         {
-            // Activity
-            var activity = new CreateDiscordChannelActivity(this.client, this.messageScheduler);
+            var voiceChannel = this.client.GetChannel(p => p.Name == context.Instance.VoiceChannelName);
+            if (voiceChannel != null)
+                await this.client.DeleteVoiceChannelAsync(voiceChannel.Id);
 
-            // Faulted
-            await activity.Faulted(context, next);
+            await next.Faulted(context);
         }
 
         /// <summary>

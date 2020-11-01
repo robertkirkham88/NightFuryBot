@@ -6,12 +6,9 @@
 
     using Automatonymous;
 
-    using Discord.Rest;
     using Discord.WebSocket;
 
     using GreenPipes;
-
-    using Microsoft.Extensions.Logging;
 
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
@@ -31,11 +28,6 @@
         /// </summary>
         private readonly DiscordSocketClient client;
 
-        /// <summary>
-        /// The logger.
-        /// </summary>
-        private readonly ILogger<UpdateActiveFlightMessageActivity> logger;
-
         #endregion Private Fields
 
         #region Public Constructors
@@ -46,13 +38,9 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        /// <param name="logger">
-        /// The logger.
-        /// </param>
-        public UpdateActiveFlightMessageActivity(DiscordSocketClient client, ILogger<UpdateActiveFlightMessageActivity> logger)
+        public UpdateActiveFlightMessageActivity(DiscordSocketClient client)
         {
             this.client = client;
-            this.logger = logger;
         }
 
         #endregion Public Constructors
@@ -84,8 +72,6 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightStartingEvent> context, Behavior<FlightState, FlightStartingEvent> next)
         {
-            this.logger.LogInformation("Updating channel message for pilot data");
-
             await this.UpdateChannelMessage(context.Instance);
 
             await next.Execute(context);
@@ -107,7 +93,7 @@
         {
             context.Instance.UsersInVoiceChannel.Add(context.Data.UserId.ToGuid());
 
-            await this.UpdateChannelMessage(context.Instance, true);
+            await this.UpdateChannelMessage(context.Instance, TimeSpan.FromSeconds(0));
             await next.Execute(context);
         }
 
@@ -128,7 +114,7 @@
             if (context.Instance.UsersInVoiceChannel.Any(p => p == context.Data.UserId.ToGuid()))
                 context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId.ToGuid());
 
-            await this.UpdateChannelMessage(context.Instance, true);
+            await this.UpdateChannelMessage(context.Instance, TimeSpan.FromSeconds(0));
             await next.Execute(context);
         }
 
@@ -147,7 +133,6 @@
         public async Task Execute(BehaviorContext<FlightState, UpdatePilotDataScheduleMessage> context, Behavior<FlightState, UpdatePilotDataScheduleMessage> next)
         {
             await this.UpdateChannelMessage(context.Instance);
-
             await next.Execute(context);
         }
 
@@ -166,7 +151,6 @@
         public async Task Execute(BehaviorContext<FlightState, FlightCreatedEvent> context, Behavior<FlightState, FlightCreatedEvent> next)
         {
             await this.UpdateChannelMessage(context.Instance);
-
             await next.Execute(context);
         }
 
@@ -296,81 +280,30 @@
         /// <param name="state">
         /// The state.
         /// </param>
-        /// <param name="forceUpdate">
-        /// The force update.
+        /// <param name="minimumPreviousEditTimeSpan">
+        /// The minimum Previous Edit Time Span.
         /// </param>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        private async Task UpdateChannelMessage(FlightState state, bool forceUpdate = false)
+        private async Task UpdateChannelMessage(FlightState state, TimeSpan? minimumPreviousEditTimeSpan = null)
         {
-            var guild = this.client.Guilds.FirstOrDefault();
-            if (guild == null)
-                throw new InvalidOperationException("Guild cannot be null");
+            if (minimumPreviousEditTimeSpan == null)
+                minimumPreviousEditTimeSpan = TimeSpan.FromMinutes(1);
 
-            if (!(guild.GetChannel(state.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel voiceChannel))
-                throw new InvalidOperationException("Voice Channel cannot be null");
+            if (!(this.client.GetChannel(state.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel voiceChannel))
+                throw new ArgumentNullException($"Voice channel with ID {state.VoiceChannelUlongId.GetValueOrDefault()} not found.");
 
-            if (!(guild.GetChannel(state.ChannelData.ActiveFlightMessageChannel) is SocketTextChannel activeFlightChannel))
-                throw new InvalidOperationException("Active flight channel cannot be null");
-
-            var restMessage = await activeFlightChannel.GetMessageAsync(state.ActiveFlightMessageId) as RestUserMessage;
-            var socketMessage = await activeFlightChannel.GetMessageAsync(state.ActiveFlightMessageId) as SocketUserMessage;
-
-            if (restMessage != null)
-            {
-                if (restMessage.EditedTimestamp.HasValue == false)
-                {
-                    // Edit the message
-                    var embed = await FlightActiveEmbed.CreateEmbed(
-                                    state.Origin,
-                                    state.Destination,
-                                    state.StartTime,
-                                    voiceChannel,
-                                    state.VatsimPilotData);
-
-                    await restMessage.ModifyAsync(p => p.Embed = embed);
-                }
-                else if (restMessage.EditedTimestamp.Value < DateTimeOffset.UtcNow.AddSeconds(-45) || forceUpdate)
-                {
-                    // Edit the message
-                    var embed = await FlightActiveEmbed.CreateEmbed(
-                                    state.Origin,
-                                    state.Destination,
-                                    state.StartTime,
-                                    voiceChannel,
-                                    state.VatsimPilotData);
-
-                    await restMessage.ModifyAsync(p => p.Embed = embed);
-                }
-            }
-            else if (socketMessage != null)
-            {
-                if (socketMessage.EditedTimestamp.HasValue == false)
-                {
-                    // Edit the message
-                    var embed = await FlightActiveEmbed.CreateEmbed(
-                                    state.Origin,
-                                    state.Destination,
-                                    state.StartTime,
-                                    voiceChannel,
-                                    state.VatsimPilotData);
-
-                    await socketMessage.ModifyAsync(p => p.Embed = embed);
-                }
-                else if (socketMessage.EditedTimestamp.Value < DateTimeOffset.UtcNow.AddSeconds(-45) || forceUpdate)
-                {
-                    // Edit the message
-                    var embed = await FlightActiveEmbed.CreateEmbed(
-                                    state.Origin,
-                                    state.Destination,
-                                    state.StartTime,
-                                    voiceChannel,
-                                    state.VatsimPilotData);
-
-                    await socketMessage.ModifyAsync(p => p.Embed = embed);
-                }
-            }
+            await this.client.UpdateMessageInChannelAsync(
+                state.ChannelData.ActiveFlightMessageChannel,
+                state.ActiveFlightMessageId,
+                minimumPreviousEditTimeSpan,
+                embed: await FlightActiveEmbed.CreateEmbed(
+                           state.Origin,
+                           state.Destination,
+                           state.StartTime,
+                           voiceChannel,
+                           state.VatsimPilotData));
         }
 
         #endregion Private Methods
