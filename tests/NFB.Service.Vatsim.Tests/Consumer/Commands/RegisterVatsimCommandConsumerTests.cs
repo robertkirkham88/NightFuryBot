@@ -3,6 +3,8 @@
     using System;
     using System.Threading.Tasks;
 
+    using AutoMapper;
+
     using MassTransit.Testing;
 
     using Microsoft.EntityFrameworkCore;
@@ -13,6 +15,7 @@
     using NFB.Domain.Bus.Responses;
     using NFB.Service.Vatsim.Consumers.Commands;
     using NFB.Service.Vatsim.Entities;
+    using NFB.Service.Vatsim.Mappings;
     using NFB.Service.Vatsim.Persistence;
     using NFB.Service.Vatsim.Tests.TestFactory;
 
@@ -49,9 +52,12 @@
         /// </summary>
         public RegisterVatsimCommandConsumerTests()
         {
+            var mapperCfg = new MapperConfiguration(cfg => cfg.AddProfile<PilotEntityMapping>());
+            var mapper = new Mapper(mapperCfg);
+
             // Constructors
             this.database = new VatsimDbContext(new DbContextOptionsBuilder().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
-            this.consumer = new RegisterVatsimCommandConsumer(this.database);
+            this.consumer = new RegisterVatsimCommandConsumer(this.database, mapper);
             this.harness = new InMemoryTestHarness();
             this.harness.Consumer(() => this.consumer);
             this.harness.Start().GetAwaiter().GetResult();
@@ -71,7 +77,7 @@
         public async Task ConsumerAddsNewEntity()
         {
             // Arrange
-            var command = new RegisterVatsimCommand { Id = "SomeRandomId" };
+            var command = new RegisterVatsimCommand { VatsimId = "SomeRandomId" };
             var mockConsumer = new Mock<ConsumerContextTestObject<RegisterVatsimCommand>>(command);
 
             // Act
@@ -79,7 +85,7 @@
             var result = await this.database.Pilots.FirstAsync();
 
             // Assert
-            Assert.Equal(command.Id, result.VatsimId);
+            Assert.Equal(command.VatsimId, result.VatsimId);
         }
 
         /// <summary>
@@ -92,7 +98,7 @@
         public async Task ConsumerConsumesMessage()
         {
             // Arrange
-            var command = new RegisterVatsimCommand { Id = "SomeRandomId" };
+            var command = new RegisterVatsimCommand { VatsimId = "SomeRandomId" };
 
             // Act
             await this.harness.InputQueueSendEndpoint.Send(command);
@@ -111,7 +117,7 @@
         public async Task ConsumerNewEntityRespondsCorrectly()
         {
             // Arrange
-            var command = new RegisterVatsimCommand { Id = "SomeRandomId" };
+            var command = new RegisterVatsimCommand { VatsimId = "SomeRandomId" };
             var mockConsumer = new Mock<ConsumerContextTestObject<RegisterVatsimCommand>>(command);
 
             // Act
@@ -134,7 +140,7 @@
             await this.database.Pilots.AddAsync(new PilotEntity { VatsimId = "SomeRandomId", UserId = "1234" });
             await this.database.SaveChangesAsync();
 
-            var command = new RegisterVatsimCommand { Id = "SomeRandomId2", UserId = "1234" };
+            var command = new RegisterVatsimCommand { VatsimId = "SomeRandomId2", UserId = "1234" };
             var mockConsumer = new Mock<ConsumerContextTestObject<RegisterVatsimCommand>>(command);
 
             // Act
@@ -157,7 +163,7 @@
             await this.database.Pilots.AddAsync(new PilotEntity { VatsimId = "SomeRandomId", UserId = "1234" });
             await this.database.SaveChangesAsync();
 
-            var command = new RegisterVatsimCommand { Id = "SomeRandomId2", UserId = "1234" };
+            var command = new RegisterVatsimCommand { VatsimId = "SomeRandomId2", UserId = "1234" };
             var mockConsumer = new Mock<ConsumerContextTestObject<RegisterVatsimCommand>>(command);
 
             // Act
@@ -165,7 +171,7 @@
             var result = await this.database.Pilots.FirstAsync();
 
             // Assert
-            Assert.Equal(command.Id, result.VatsimId);
+            Assert.Equal(command.VatsimId, result.VatsimId);
         }
 
         #endregion Public Methods

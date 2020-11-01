@@ -3,6 +3,8 @@
     using System;
     using System.Threading.Tasks;
 
+    using AutoMapper;
+
     using MassTransit;
 
     using Microsoft.EntityFrameworkCore;
@@ -24,6 +26,11 @@
         /// </summary>
         private readonly VatsimDbContext database;
 
+        /// <summary>
+        /// The mapper.
+        /// </summary>
+        private readonly IMapper mapper;
+
         #endregion Private Fields
 
         #region Public Constructors
@@ -34,9 +41,13 @@
         /// <param name="database">
         /// The database.
         /// </param>
-        public RegisterVatsimCommandConsumer(VatsimDbContext database)
+        /// <param name="mapper">
+        /// The mapper.
+        /// </param>
+        public RegisterVatsimCommandConsumer(VatsimDbContext database, IMapper mapper)
         {
             this.database = database;
+            this.mapper = mapper;
         }
 
         #endregion Public Constructors
@@ -57,19 +68,11 @@
             try
             {
                 var existingEntity = await this.database.Pilots.FirstOrDefaultAsync(p => p.UserId == context.Message.UserId);
+
                 if (existingEntity == null)
-                {
-                    await this.database.Pilots.AddAsync(new PilotEntity
-                    {
-                        VatsimId = context.Message.Id,
-                        UserId = context.Message.UserId
-                    });
-                }
+                    await this.database.Pilots.AddAsync(this.mapper.Map(context.Message, new PilotEntity()));
                 else
-                {
-                    existingEntity.VatsimId = context.Message.Id;
-                    this.database.Pilots.Update(existingEntity);
-                }
+                    this.database.Pilots.Update(this.mapper.Map(context.Message, existingEntity));
 
                 await this.database.SaveChangesAsync();
                 await context.RespondAsync(new RegisterVatsimCommandSuccessResponse());

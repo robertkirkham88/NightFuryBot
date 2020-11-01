@@ -27,6 +27,9 @@
   <ItemGroup>
     <PackageReference Include="Autofac" Version="6.0.0" />
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="7.1.0" />
+    <PackageReference Include="AutoMapper" Version="10.1.1" />
+    <PackageReference Include="AutoMapper.Contrib.Autofac.DependencyInjection" Version="5.1.0" />
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="8.1.0" />
     <PackageReference Include="MassTransit" Version="7.0.6" />
     <PackageReference Include="MassTransit.AspNetCore" Version="7.0.6" />
     <PackageReference Include="MassTransit.Autofac" Version="7.0.6" />

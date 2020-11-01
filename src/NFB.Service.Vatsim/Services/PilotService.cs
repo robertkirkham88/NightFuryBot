@@ -116,13 +116,13 @@
         #region Private Methods
 
         /// <summary>
-        /// Update the pilot information.
+        /// Update the pilot and publish new pilot information.
         /// </summary>
         /// <param name="source">
-        /// The source.
+        /// The source caller.
         /// </param>
         /// <param name="e">
-        /// The e.
+        /// The elapsed event arguments.
         /// </param>
         private async void UpdatePilotInformation(object source, System.Timers.ElapsedEventArgs e)
         {

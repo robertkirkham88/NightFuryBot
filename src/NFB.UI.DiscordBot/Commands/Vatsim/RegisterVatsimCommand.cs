@@ -44,10 +44,10 @@
         #region Public Methods
 
         /// <summary>
-        /// Register user to a vatsim id.
+        /// Register user to a vatsim ID.
         /// </summary>
-        /// <param name="id">
-        /// The id.
+        /// <param name="vatsimId">
+        /// The new vatsim ID for the user.
         /// </param>
         /// <returns>
         /// The <see cref="Task"/>.
@@ -55,23 +55,16 @@
         [Name("Register Vatsim ID")]
         [Command]
         [Summary("!vatsim [ID]\r\nRegister your Vatsim to the specified ID.\r\nExample: !vatsim 123456789")]
-        public async Task<RuntimeResult> ExecuteAsync(string id)
+        public async Task<RuntimeResult> ExecuteAsync(string vatsimId)
         {
             try
             {
-                var (successful, failed) =
+                var (success, _) =
                     await this.request
                         .GetResponse<RegisterVatsimCommandSuccessResponse, RegisterVatsimCommandFailResponse>(
-                            new RegisterVatsimCommand { Id = id, UserId = this.Context.User.Id.ToString() });
+                            new RegisterVatsimCommand { VatsimId = vatsimId, UserId = this.Context.User.Id.ToString() });
 
-                if (successful.IsCompletedSuccessfully)
-                {
-                    await successful;
-                    return CommandResult.FromSuccess($"Successfully registered your Vatsim ID {id}");
-                }
-
-                await failed;
-                return CommandResult.FromError($"Failed to register your Vatsim ID as {id}");
+                return success.IsCompletedSuccessfully ? CommandResult.FromSuccess($"Successfully registered your Vatsim ID {vatsimId}") : CommandResult.FromError($"Failed to register your Vatsim ID as {vatsimId}");
             }
             catch (Exception ex)
             {

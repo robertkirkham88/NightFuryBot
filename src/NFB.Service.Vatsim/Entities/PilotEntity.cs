@@ -20,7 +20,7 @@
         public string UserId { get; set; }
 
         /// <summary>
-        /// Gets or sets the client id.
+        /// Gets or sets the vatsim id.
         /// </summary>
         public string VatsimId { get; set; }
 

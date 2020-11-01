@@ -8,6 +8,8 @@
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
 
+    using AutoMapper.Contrib.Autofac.DependencyInjection;
+
     using MassTransit;
 
     using Microsoft.EntityFrameworkCore;
@@ -77,6 +79,8 @@
                 .ConfigureContainer<ContainerBuilder>(
                     (builderContext, configureDelegate) =>
                         {
+                            configureDelegate.RegisterAutoMapper(Assembly.GetExecutingAssembly());
+
                             var busSettings = configuration.GetSection("BusSettings").Get<BusSettings>();
 
                             configureDelegate.AddMassTransit(
