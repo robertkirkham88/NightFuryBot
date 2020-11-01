@@ -13,6 +13,8 @@
 
     using MassTransit;
 
+    using Microsoft.Extensions.Logging;
+
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
     using NFB.UI.DiscordBot.Extensions;
@@ -36,6 +38,11 @@
         private readonly DiscordSocketClient client;
 
         /// <summary>
+        /// The logger.
+        /// </summary>
+        private readonly ILogger<CreateDiscordChannelActivity> logger;
+
+        /// <summary>
         /// The mapper.
         /// </summary>
         private readonly IMapper mapper;
@@ -56,11 +63,15 @@
         /// <param name="mapper">
         /// The mapper.
         /// </param>
-        public CreateDiscordChannelActivity(DiscordSocketClient client, IMessageScheduler busScheduler, IMapper mapper)
+        /// <param name="logger">
+        /// The logger.
+        /// </param>
+        public CreateDiscordChannelActivity(DiscordSocketClient client, IMessageScheduler busScheduler, IMapper mapper, ILogger<CreateDiscordChannelActivity> logger)
         {
             this.client = client;
             this.busScheduler = busScheduler;
             this.mapper = mapper;
+            this.logger = logger;
         }
 
         #endregion Public Constructors
@@ -92,6 +103,8 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightCreatedEvent> context, Behavior<FlightState, FlightCreatedEvent> next)
         {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
             this.mapper.Map(context.Data, context.Instance);
 
             var message = await this.client.SendMessageToChannelAsync(
@@ -99,6 +112,8 @@
                               embed: FlightCreatedEmbed.CreateEmbed(context.Instance.Origin, context.Instance.Destination, context.Instance.StartTime));
 
             context.Instance.AnnouncementMessageId = message.Id;
+
+            this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Created announcement message {message.Id}.");
 
             var response = await this.client.SendMessageToChannelAsync(
                                context.Instance.ChannelData.BookChannel,

@@ -12,7 +12,6 @@
     using Microsoft.Extensions.Logging;
 
     using NFB.Domain.Bus.Events;
-    using NFB.UI.DiscordBot.Exceptions;
     using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.Schedules;
     using NFB.UI.DiscordBot.States;
@@ -82,24 +81,28 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, CheckFlightCompletedScheduleMessage> context, Behavior<FlightState, CheckFlightCompletedScheduleMessage> next)
         {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
             try
             {
                 // If the voice channel has been removed successfully.
                 if (await this.client.DeleteVoiceChannelAsync(context.Instance.VoiceChannelUlongId.GetValueOrDefault()))
                 {
+                    this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted voice channel {context.Instance.VoiceChannelUlongId.GetValueOrDefault()}.");
+
                     await this.client.DeleteMessageFromChannelAsync(
                         context.Instance.ChannelData.ActiveFlightMessageChannel,
                         context.Instance.ActiveFlightMessageId);
+
+                    this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted message {context.Instance.ActiveFlightMessageId} in {context.Instance.ChannelData.ActiveFlightMessageChannel}.");
                 }
                 else
                 {
+                    this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Voice channel {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} is not empty.");
+
                     await next.Execute(context);
                     return;
                 }
-            }
-            catch (VoiceChannelNotEmptyException)
-            {
-                return;
             }
             catch (Exception ex)
             {

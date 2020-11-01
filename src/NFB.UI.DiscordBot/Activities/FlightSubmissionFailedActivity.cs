@@ -11,6 +11,8 @@
 
     using MassTransit;
 
+    using Microsoft.Extensions.Logging;
+
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.States;
 
@@ -25,6 +27,11 @@
         /// The client.
         /// </summary>
         private readonly DiscordSocketClient client;
+
+        /// <summary>
+        /// The logger.
+        /// </summary>
+        private readonly ILogger<FlightSubmissionFailedActivity> logger;
 
         /// <summary>
         /// The scheduler.
@@ -44,10 +51,14 @@
         /// <param name="scheduler">
         /// The scheduler.
         /// </param>
-        public FlightSubmissionFailedActivity(DiscordSocketClient client, IMessageScheduler scheduler)
+        /// <param name="logger">
+        /// The logger.
+        /// </param>
+        public FlightSubmissionFailedActivity(DiscordSocketClient client, IMessageScheduler scheduler, ILogger<FlightSubmissionFailedActivity> logger)
         {
             this.client = client;
             this.scheduler = scheduler;
+            this.logger = logger;
         }
 
         #endregion Public Constructors
@@ -79,6 +90,8 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightInvalidEvent> context, Behavior<FlightState, FlightInvalidEvent> next)
         {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
             if (this.client.GetChannel(context.Instance.ChannelData.BookChannel) is SocketTextChannel channel)
             {
                 var message = await channel.SendMessageAsync(context.Data.ValidationError);

@@ -9,6 +9,8 @@
 
     using GreenPipes;
 
+    using Microsoft.Extensions.Logging;
+
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.States;
@@ -25,6 +27,11 @@
         /// </summary>
         private readonly DiscordSocketClient client;
 
+        /// <summary>
+        /// The logger.
+        /// </summary>
+        private readonly ILogger<CreateVoiceChannelActivity> logger;
+
         #endregion Private Fields
 
         #region Public Constructors
@@ -35,9 +42,13 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        public CreateVoiceChannelActivity(DiscordSocketClient client)
+        /// <param name="logger">
+        /// The logger.
+        /// </param>
+        public CreateVoiceChannelActivity(DiscordSocketClient client, ILogger<CreateVoiceChannelActivity> logger)
         {
             this.client = client;
+            this.logger = logger;
         }
 
         #endregion Public Constructors
@@ -69,6 +80,8 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightStartingEvent> context, Behavior<FlightState, FlightStartingEvent> next)
         {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
             var existingVoiceChannel = this.client.GetChannel(p => p.Name == context.Instance.VoiceChannelName);
 
             if (existingVoiceChannel == null)
@@ -79,11 +92,15 @@
 
                 context.Instance.VoiceChannelUlongId = voiceChannel.Id;
                 context.Instance.VoiceChannelId = voiceChannel.Id.ToGuid();
+
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Created new voice channel {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} in {context.Instance.ChannelData.Category}.");
             }
             else
             {
                 context.Instance.VoiceChannelUlongId = existingVoiceChannel.Id;
                 context.Instance.VoiceChannelId = existingVoiceChannel.Id.ToGuid();
+
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Found existing voice channel {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} in {context.Instance.ChannelData.Category}.");
             }
 
             await next.Execute(context);
@@ -103,6 +120,8 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightCreatedEvent> context, Behavior<FlightState, FlightCreatedEvent> next)
         {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
             var existingVoiceChannel = this.client.GetChannel(p => p.Name == context.Instance.VoiceChannelName);
 
             if (existingVoiceChannel == null)
@@ -113,11 +132,15 @@
 
                 context.Instance.VoiceChannelUlongId = voiceChannel.Id;
                 context.Instance.VoiceChannelId = voiceChannel.Id.ToGuid();
+
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Created new voice channel {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} in {context.Instance.ChannelData.Category}.");
             }
             else
             {
                 context.Instance.VoiceChannelUlongId = existingVoiceChannel.Id;
                 context.Instance.VoiceChannelId = existingVoiceChannel.Id.ToGuid();
+
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Found existing voice channel {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} in {context.Instance.ChannelData.Category}.");
             }
 
             await next.Execute(context);

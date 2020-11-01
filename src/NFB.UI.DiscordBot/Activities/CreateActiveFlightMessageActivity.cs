@@ -9,6 +9,8 @@
 
     using GreenPipes;
 
+    using Microsoft.Extensions.Logging;
+
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
     using NFB.UI.DiscordBot.Extensions;
@@ -26,6 +28,11 @@
         /// </summary>
         private readonly DiscordSocketClient client;
 
+        /// <summary>
+        /// The logger.
+        /// </summary>
+        private readonly ILogger<CreateActiveFlightMessageActivity> logger;
+
         #endregion Private Fields
 
         #region Public Constructors
@@ -36,9 +43,13 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        public CreateActiveFlightMessageActivity(DiscordSocketClient client)
+        /// <param name="logger">
+        /// The logger.
+        /// </param>
+        public CreateActiveFlightMessageActivity(DiscordSocketClient client, ILogger<CreateActiveFlightMessageActivity> logger)
         {
             this.client = client;
+            this.logger = logger;
         }
 
         #endregion Public Constructors
@@ -70,12 +81,16 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightStartingEvent> context, Behavior<FlightState, FlightStartingEvent> next)
         {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
             if (!(this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel voiceChannel))
-                throw new ArgumentNullException($"Voice channel with ID {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} not found.");
+                throw new ArgumentNullException($"SAGA {context.Instance.CorrelationId}: Voice channel with ID {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} not found.");
 
             await this.client.DeleteMessageFromChannelAsync(
                 context.Instance.ChannelData.AnnouncementChannel,
                 context.Instance.AnnouncementMessageId);
+
+            this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted message {context.Instance.AnnouncementMessageId} in {context.Instance.ChannelData.AnnouncementChannel}.");
 
             // Create a new message.
             var embed = await FlightActiveEmbed.CreateEmbed(

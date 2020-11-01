@@ -83,7 +83,8 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, VatsimPilotUpdatedEvent> context, Behavior<FlightState, VatsimPilotUpdatedEvent> next)
         {
-            this.logger.LogInformation("Updating VatsimPilotData");
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
             var pilot = context.Instance.VatsimPilotData.FirstOrDefault(p => p.UserId == context.Data.UserId);
 
             if (pilot == null)
@@ -94,11 +95,19 @@
                 else
                     context.Instance.AvailableColors.Remove(chosenColorUint);
 
-                context.Instance.VatsimPilotData.Add(this.mapper.Map(context.Data, new VatsimPilotModel { AssignedColor = chosenColorUint }));
+                var pilotEntity = this.mapper.Map(context.Data, new VatsimPilotModel { AssignedColor = chosenColorUint });
+                context.Instance.VatsimPilotData.Add(pilotEntity);
+
+                this.logger.LogInformation(
+                    "SAGA {@id}: Assigned new pilot {@pilot}",
+                    context.Instance.CorrelationId,
+                    pilotEntity);
             }
             else
             {
                 this.mapper.Map(context.Data, pilot);
+
+                this.logger.LogInformation("SAGA {@id}: Updated pilot {@pilot}", context.Instance.CorrelationId, pilot);
             }
 
             await next.Execute(context);

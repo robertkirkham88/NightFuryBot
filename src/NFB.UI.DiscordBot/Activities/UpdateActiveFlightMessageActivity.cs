@@ -10,6 +10,8 @@
 
     using GreenPipes;
 
+    using Microsoft.Extensions.Logging;
+
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Embeds;
     using NFB.UI.DiscordBot.Extensions;
@@ -28,6 +30,11 @@
         /// </summary>
         private readonly DiscordSocketClient client;
 
+        /// <summary>
+        /// The logger.
+        /// </summary>
+        private readonly ILogger<UpdateActiveFlightMessageActivity> logger;
+
         #endregion Private Fields
 
         #region Public Constructors
@@ -38,9 +45,13 @@
         /// <param name="client">
         /// The client.
         /// </param>
-        public UpdateActiveFlightMessageActivity(DiscordSocketClient client)
+        /// <param name="logger">
+        /// The logger.
+        /// </param>
+        public UpdateActiveFlightMessageActivity(DiscordSocketClient client, ILogger<UpdateActiveFlightMessageActivity> logger)
         {
             this.client = client;
+            this.logger = logger;
         }
 
         #endregion Public Constructors
@@ -91,6 +102,8 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, UserJoinedVoiceChannelEvent> context, Behavior<FlightState, UserJoinedVoiceChannelEvent> next)
         {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
             context.Instance.UsersInVoiceChannel.Add(context.Data.UserId.ToGuid());
 
             await this.UpdateChannelMessage(context.Instance, TimeSpan.FromSeconds(0));
@@ -111,6 +124,8 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, UserLeftVoiceChannelEvent> context, Behavior<FlightState, UserLeftVoiceChannelEvent> next)
         {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
             if (context.Instance.UsersInVoiceChannel.Any(p => p == context.Data.UserId.ToGuid()))
                 context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId.ToGuid());
 
@@ -132,6 +147,8 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, UpdatePilotDataScheduleMessage> context, Behavior<FlightState, UpdatePilotDataScheduleMessage> next)
         {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
             await this.UpdateChannelMessage(context.Instance);
             await next.Execute(context);
         }
@@ -150,6 +167,8 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightCreatedEvent> context, Behavior<FlightState, FlightCreatedEvent> next)
         {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
             await this.UpdateChannelMessage(context.Instance);
             await next.Execute(context);
         }
@@ -293,6 +312,8 @@
 
             if (!(this.client.GetChannel(state.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel voiceChannel))
                 throw new ArgumentNullException($"Voice channel with ID {state.VoiceChannelUlongId.GetValueOrDefault()} not found.");
+
+            this.logger.LogInformation($"SAGA {state.CorrelationId}: Updating {state.ActiveFlightMessageId} with {minimumPreviousEditTimeSpan.GetValueOrDefault().TotalSeconds}sec time constraint.");
 
             await this.client.UpdateMessageInChannelAsync(
                 state.ChannelData.ActiveFlightMessageChannel,
