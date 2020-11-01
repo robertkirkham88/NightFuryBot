@@ -24,7 +24,6 @@
         [Summary("Show the source code for the bot.\r\nExample: !source")]
 #pragma warning disable 1998
         public async Task<RuntimeResult> ExecuteAsync()
-#pragma warning restore 1998
         {
             return CommandResult.FromSuccess(
                 new CommandResultMessage(
@@ -32,5 +31,7 @@
         }
 
         #endregion Public Methods
+
+#pragma warning restore 1998
     }
 }
