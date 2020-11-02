@@ -29,7 +29,7 @@ services:
         depends_on:
             - rabbitmq
             - logging
-            - database
+            - mongo
 
     servicevatsim:
         image: localhost:7000/nfbservicevatsim

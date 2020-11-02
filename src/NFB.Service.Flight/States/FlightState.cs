@@ -4,12 +4,14 @@
 
     using Automatonymous;
 
+    using MassTransit.Saga;
+
     using NFB.Service.Flight.Models;
 
     /// <summary>
     /// The flight state.
     /// </summary>
-    public class FlightState : SagaStateMachineInstance
+    public class FlightState : SagaStateMachineInstance, ISagaVersion
     {
         #region Public Properties
 
@@ -47,6 +49,11 @@
         /// Gets or sets the start time.
         /// </summary>
         public DateTime StartTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets the version.
+        /// </summary>
+        public int Version { get; set; }
 
         #endregion Public Properties
     }

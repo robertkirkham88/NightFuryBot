@@ -10,7 +10,6 @@
 
     using MassTransit;
 
-    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
@@ -20,7 +19,6 @@
     using NFB.Domain.Settings;
     using NFB.Infrastructure.CrossCutting.Logging;
     using NFB.Service.Flight.Models;
-    using NFB.Service.Flight.Persistence;
     using NFB.Service.Flight.Repository;
     using NFB.Service.Flight.StateMachines;
     using NFB.Service.Flight.States;
@@ -72,15 +70,6 @@
                             configureDelegate.AddSingleton(configuration);
                             configureDelegate.AddMassTransitHostedService();
 
-                            var databaseConnection = configuration.GetConnectionString("db");
-                            configureDelegate.AddDbContext<FlightDbContext>(options => options.UseNpgsql(databaseConnection));
-
-                            var serviceProvider = configureDelegate.BuildServiceProvider();
-                            using (var databaseContext = serviceProvider.GetRequiredService<FlightDbContext>())
-                            {
-                                databaseContext.Database.Migrate();
-                            }
-
                             var airportsJsonSerialized = JsonConvert.DeserializeObject<AirportRootModel>(File.ReadAllText(@"airports.json"));
                             var airportRepository = new AirportRepository(airportsJsonSerialized);
                             configureDelegate.AddSingleton(airportRepository);
@@ -95,7 +84,13 @@
                                     busConfigurator.AddRabbitMqMessageScheduler();
                                     busConfigurator.AddConsumers(Assembly.GetExecutingAssembly());
                                     busConfigurator.AddSagas(Assembly.GetExecutingAssembly());
-                                    busConfigurator.AddSagaStateMachine<FlightStateMachine, FlightState>().MartenRepository(configuration.GetConnectionString("db"));
+                                    busConfigurator.AddSagaStateMachine<FlightStateMachine, FlightState>()
+                                        .MongoDbRepository(
+                                            r =>
+                                                {
+                                                    r.Connection = "mongodb://mongo";
+                                                    r.DatabaseName = "service-flight-flights";
+                                                });
 
                                     busConfigurator.UsingRabbitMq(
                                         (registrationContext, rabbitConfigurator) =>

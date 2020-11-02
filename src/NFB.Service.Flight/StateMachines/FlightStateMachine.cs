@@ -134,8 +134,6 @@
         /// </summary>
         public State Created { get; set; }
 
-        public State Faulted { get; set; }
-
         /// <summary>
         /// Gets or sets the flight created event.
         /// </summary>
