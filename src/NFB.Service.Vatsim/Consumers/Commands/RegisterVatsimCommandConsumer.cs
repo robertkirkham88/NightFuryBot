@@ -1,18 +1,17 @@
 ﻿namespace NFB.Service.Vatsim.Consumers.Commands
 {
     using System;
+    using System.Linq;
     using System.Threading.Tasks;
 
     using AutoMapper;
 
     using MassTransit;
 
-    using Microsoft.EntityFrameworkCore;
-
     using NFB.Domain.Bus.Commands;
     using NFB.Domain.Bus.Responses;
     using NFB.Service.Vatsim.Entities;
-    using NFB.Service.Vatsim.Persistence;
+    using NFB.Service.Vatsim.Repositories;
 
     /// <summary>
     /// The register vatsim command consumer.
@@ -22,14 +21,14 @@
         #region Private Fields
 
         /// <summary>
-        /// The database.
-        /// </summary>
-        private readonly VatsimDbContext database;
-
-        /// <summary>
         /// The mapper.
         /// </summary>
         private readonly IMapper mapper;
+
+        /// <summary>
+        /// The repository.
+        /// </summary>
+        private readonly IPilotRepository repository;
 
         #endregion Private Fields
 
@@ -38,15 +37,15 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="RegisterVatsimCommandConsumer"/> class.
         /// </summary>
-        /// <param name="database">
-        /// The database.
+        /// <param name="repository">
+        /// The repository.
         /// </param>
         /// <param name="mapper">
         /// The mapper.
         /// </param>
-        public RegisterVatsimCommandConsumer(VatsimDbContext database, IMapper mapper)
+        public RegisterVatsimCommandConsumer(IPilotRepository repository, IMapper mapper)
         {
-            this.database = database;
+            this.repository = repository;
             this.mapper = mapper;
         }
 
@@ -67,14 +66,14 @@
         {
             try
             {
-                var existingEntity = await this.database.Pilots.FirstOrDefaultAsync(p => p.UserId == context.Message.UserId);
+                var entities = await this.repository.Get(p => p.UserId == context.Message.UserId);
+                var existingEntity = entities.FirstOrDefault();
 
                 if (existingEntity == null)
-                    await this.database.Pilots.AddAsync(this.mapper.Map(context.Message, new PilotEntity()));
+                    await this.repository.Create(this.mapper.Map(context.Message, new PilotEntity()));
                 else
-                    this.database.Pilots.Update(this.mapper.Map(context.Message, existingEntity));
+                    await this.repository.Update(existingEntity.Id, this.mapper.Map(context.Message, existingEntity));
 
-                await this.database.SaveChangesAsync();
                 await context.RespondAsync(new RegisterVatsimCommandSuccessResponse());
             }
             catch (Exception ex)

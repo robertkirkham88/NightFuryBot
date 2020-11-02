@@ -12,14 +12,13 @@
 
     using MassTransit;
 
-    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
 
     using NFB.Domain.Settings;
     using NFB.Infrastructure.CrossCutting.Logging;
-    using NFB.Service.Vatsim.Persistence;
+    using NFB.Service.Vatsim.Models;
 
     using Serilog;
 
@@ -66,15 +65,8 @@
                             configureDelegate.AddSingleton(configuration);
                             configureDelegate.AddMassTransitHostedService();
 
-                            var databaseConnection = configuration.GetConnectionString("db");
-                            configureDelegate.AddDbContext<VatsimDbContext>(
-                                options => options.UseNpgsql(databaseConnection));
-
-                            var serviceProvider = configureDelegate.BuildServiceProvider();
-                            using (var databaseContext = serviceProvider.GetRequiredService<VatsimDbContext>())
-                            {
-                                databaseContext.Database.Migrate();
-                            }
+                            var databaseSettings = configuration.GetSection("MongoSettings").Get<MongoSettings>();
+                            configureDelegate.AddSingleton(databaseSettings);
                         })
                 .ConfigureContainer<ContainerBuilder>(
                     (builderContext, configureDelegate) =>

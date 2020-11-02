@@ -15,7 +15,7 @@
 
     using NFB.Domain.Bus.Events;
     using NFB.Service.Vatsim.Models;
-    using NFB.Service.Vatsim.Persistence;
+    using NFB.Service.Vatsim.Repositories;
 
     using Timer = System.Timers.Timer;
 
@@ -32,14 +32,14 @@
         private readonly IBusControl bus;
 
         /// <summary>
-        /// The database.
-        /// </summary>
-        private readonly VatsimDbContext database;
-
-        /// <summary>
         /// The logger.
         /// </summary>
         private readonly ILogger<PilotService> logger;
+
+        /// <summary>
+        /// The repository.
+        /// </summary>
+        private readonly IPilotRepository repository;
 
         /// <summary>
         /// The timer.
@@ -53,8 +53,8 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="PilotService"/> class.
         /// </summary>
-        /// <param name="database">
-        /// The database.
+        /// <param name="repository">
+        /// The repository.
         /// </param>
         /// <param name="bus">
         /// The bus.
@@ -62,9 +62,9 @@
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public PilotService(VatsimDbContext database, IBusControl bus, ILogger<PilotService> logger)
+        public PilotService(IPilotRepository repository, IBusControl bus, ILogger<PilotService> logger)
         {
-            this.database = database;
+            this.repository = repository;
             this.bus = bus;
             this.logger = logger;
             this.timer = new Timer
@@ -130,13 +130,11 @@
             {
                 var jsonData = new WebClient().DownloadString("http://cluster.data.vatsim.net/vatsim-data.json");
 
-                var databasePilotsIds = await this.database.Pilots.ToListAsync();
+                var databasePilotsIds = await this.repository.Get();
                 var onlinePilots = JsonConvert.DeserializeObject<PilotRootModel>(jsonData).Pilots;
 
                 foreach (var pilot in databasePilotsIds)
                 {
-                    await this.database.Entry(pilot).ReloadAsync();
-
                     var isOnline = onlinePilots.FirstOrDefault(p => p.Cid == pilot.VatsimId);
 
                     if (isOnline != null)

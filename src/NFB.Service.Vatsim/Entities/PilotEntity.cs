@@ -2,6 +2,8 @@
 {
     using System;
 
+    using MongoDB.Bson.Serialization.Attributes;
+
     /// <summary>
     /// The vatsim entity.
     /// </summary>
@@ -12,6 +14,7 @@
         /// <summary>
         /// Gets or sets the Id.
         /// </summary>
+        [BsonId]
         public Guid Id { get; set; }
 
         /// <summary>
