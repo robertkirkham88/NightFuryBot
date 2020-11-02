@@ -13,9 +13,10 @@ services:
             - databasenetwork
             - loggingnetwork
         depends_on:
+            - serviceflight
+            - servicevatsim
             - rabbitmq
             - logging
-            - database
 
     serviceflight:
         image: localhost:7000/nfbserviceflight
@@ -41,9 +42,9 @@ services:
             - databasenetwork
             - loggingnetwork
         depends_on:
+            - mongo
             - rabbitmq
             - logging
-            - database
 
     rabbitmq:
         image: localhost:7000/nfbrabbitmq
@@ -91,6 +92,8 @@ services:
             ME_CONFIG_MONGODB_SERVER: mongo
         networks:
             - databasenetwork
+        depends_on:
+            - mongo
 
     logging:
         image: datalust/seq
@@ -103,23 +106,6 @@ services:
         ports:
             - "6101:80"
             - "5341"
-
-    database:
-        image: postgres:latest
-        volumes:
-            - C:\docker\nfb-dev\nfb.database\var\lib\postgresql\data:/var/lib/postgresql/data
-        environment:
-            POSTGRES_USER: dbuser
-            POSTGRES_PASSWORD: z1Tf3U9io5ufol
-        networks:
-            - databasenetwork
-
-    databaseadmin:
-        image: adminer
-        ports:
-            - "6102:8080"
-        networks:
-            - databasenetwork
 
 networks:
     busnetwork:
