@@ -53,11 +53,18 @@ services:
         ports:
             - "5672"
             - "6100:15672"
+        volumes:
+            - C:\docker\nfb-dev\nfb.rabbitmq:/var/lib/rabbitmq
         networks:
             - busnetwork
         environment:
             - RABBITMQ_DEFAULT_USER=rabbitmquser
             - RABBITMQ_DEFAULT_PASS=k6G4LdPttQL2DvnH
+        healthcheck:
+            test: rabbitmq-diagnostics -q status
+            interval: 30s
+            timeout: 30s
+            retries: 3
 
     mongo:
         image: mongo
@@ -84,6 +91,8 @@ services:
         image: datalust/seq
         networks:
             - loggingnetwork
+        volumes:
+            - C:\docker\nfb-dev\nfb.seq\data:/data
         environment:
             - ACCEPT_EULA=Y
         ports:
