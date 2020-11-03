@@ -1,6 +1,7 @@
 ﻿namespace NFB.UI.DiscordBot.StateMachines
 {
     using System;
+    using System.Linq;
     using System.Threading;
 
     using Automatonymous;
@@ -110,6 +111,14 @@
                         {
                             if (context.Instance.UsersInVoiceChannel.Contains(context.Data.UserId.ToGuid()))
                                 context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId.ToGuid());
+
+                            var vatsimData =
+                                context.Instance.VatsimPilotData.FirstOrDefault(p => p.UserId == context.Data.UserId);
+
+                            if (vatsimData == null) return;
+
+                            context.Instance.AvailableColors.Add(vatsimData.AssignedColor); // Re add the color to the available pool.
+                            context.Instance.VatsimPilotData.Remove(vatsimData);
                         })
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
                     .Schedule(
