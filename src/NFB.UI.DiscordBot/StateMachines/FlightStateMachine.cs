@@ -1,7 +1,6 @@
 ﻿namespace NFB.UI.DiscordBot.StateMachines
 {
     using System;
-    using System.Linq;
     using System.Threading;
 
     using Automatonymous;
@@ -93,12 +92,7 @@
             this.During(
                 this.Active,
                 this.When(this.UserJoinedVoiceChannelEvent)
-                    .Then(
-                        context =>
-                            {
-                                if (!context.Instance.UsersInVoiceChannel.Contains(context.Data.UserId.ToGuid()))
-                                    context.Instance.UsersInVoiceChannel.Add(context.Data.UserId.ToGuid());
-                            })
+                    .Activity(x => x.OfType<AddUserToFlightActivity>())
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
                     .Schedule(
                         this.UpdatePilotDataSchedule,
@@ -107,19 +101,7 @@
                         context => TimeSpan.FromSeconds(5))
                     .Unschedule(this.CheckFlightCompletedSchedule),
                 this.When(this.UserLeftVoiceChannelEvent)
-                    .Then(context =>
-                        {
-                            if (context.Instance.UsersInVoiceChannel.Contains(context.Data.UserId.ToGuid()))
-                                context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId.ToGuid());
-
-                            var vatsimData =
-                                context.Instance.VatsimPilotData.FirstOrDefault(p => p.UserId == context.Data.UserId);
-
-                            if (vatsimData == null) return;
-
-                            context.Instance.AvailableColors.Add(vatsimData.AssignedColor); // Re add the color to the available pool.
-                            context.Instance.VatsimPilotData.Remove(vatsimData);
-                        })
+                    .Activity(x => x.OfType<RemoveUserFromFlightActivity>())
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
                     .Schedule(
                         this.UpdatePilotDataSchedule,
