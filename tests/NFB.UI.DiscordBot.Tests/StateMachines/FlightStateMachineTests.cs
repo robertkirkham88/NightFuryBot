@@ -75,7 +75,7 @@
                     });
             services.AddSingleton(this.client);
             services.AddScoped<CheckFlightCompletedActivity>();
-            services.AddScoped<CreateDiscordChannelActivity>();
+            services.AddScoped<CreateAnnouncementMessageActivity>();
             services.AddScoped<CreateVoiceChannelActivity>();
             services.AddScoped<UpdateActiveFlightMessageActivity>();
             services.AddScoped<UpdateVatsimPilotDataActivity>();

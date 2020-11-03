@@ -59,7 +59,7 @@
             this.During(
                 this.Submitted,
                 this.When(this.FlightCreatedEvent)
-                    .Activity(x => x.OfType<CreateDiscordChannelActivity>())
+                    .Activity(x => x.OfType<CreateAnnouncementMessageActivity>())
                     .TransitionTo(this.Created),
                 this.When(this.FlightInvalidEvent)
                     .Activity(x => x.OfType<FlightSubmissionFailedActivity>())
@@ -79,7 +79,7 @@
                         context => context.Instance.StartTime.AddHours(1))
                     .TransitionTo(this.Active),
                 this.When(this.FlightCreatedEvent)
-                    .Activity(x => x.OfType<CreateDiscordChannelActivity>())
+                    .Activity(x => x.OfType<CreateAnnouncementMessageActivity>())
                     .Activity(x => x.OfType<CreateVoiceChannelActivity>())
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
                     .Schedule(

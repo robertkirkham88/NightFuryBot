@@ -23,7 +23,7 @@
     /// <summary>
     /// The create discord channel activity.
     /// </summary>
-    public class CreateDiscordChannelActivity : Activity<FlightState, FlightCreatedEvent>
+    public class CreateAnnouncementMessageActivity : Activity<FlightState, FlightCreatedEvent>
     {
         #region Private Fields
 
@@ -40,7 +40,7 @@
         /// <summary>
         /// The logger.
         /// </summary>
-        private readonly ILogger<CreateDiscordChannelActivity> logger;
+        private readonly ILogger<CreateAnnouncementMessageActivity> logger;
 
         /// <summary>
         /// The mapper.
@@ -52,7 +52,7 @@
         #region Public Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CreateDiscordChannelActivity"/> class.
+        /// Initializes a new instance of the <see cref="CreateAnnouncementMessageActivity"/> class.
         /// </summary>
         /// <param name="client">
         /// The client.
@@ -66,7 +66,7 @@
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public CreateDiscordChannelActivity(DiscordSocketClient client, IMessageScheduler busScheduler, IMapper mapper, ILogger<CreateDiscordChannelActivity> logger)
+        public CreateAnnouncementMessageActivity(DiscordSocketClient client, IMessageScheduler busScheduler, IMapper mapper, ILogger<CreateAnnouncementMessageActivity> logger)
         {
             this.client = client;
             this.busScheduler = busScheduler;
