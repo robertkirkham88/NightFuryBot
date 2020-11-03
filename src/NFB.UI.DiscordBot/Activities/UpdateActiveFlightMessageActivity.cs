@@ -83,6 +83,8 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, FlightStartingEvent> context, Behavior<FlightState, FlightStartingEvent> next)
         {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
             await this.UpdateChannelMessage(context.Instance);
 
             await next.Execute(context);
