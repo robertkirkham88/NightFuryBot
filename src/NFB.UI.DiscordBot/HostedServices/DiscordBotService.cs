@@ -228,15 +228,14 @@
         /// </returns>
         private async Task UseVoiceStatusUpdate(SocketUser user, SocketVoiceState before, SocketVoiceState after)
         {
+            if (before.VoiceChannel?.Id == after.VoiceChannel?.Id)
+                return; // User has deafened or muted.
+
             if (before.VoiceChannel != null)
-            {
                 await this.UserLeftVoiceChannel(user, before);
-            }
 
             if (after.VoiceChannel != null)
-            {
                 await this.UserJoinedVoiceChannel(user, after);
-            }
         }
 
         #endregion Private Methods
