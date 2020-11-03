@@ -67,9 +67,9 @@
         /// <returns>
         /// The <see cref="IAsyncResult"/>.
         /// </returns>
-        public async Task<PilotEntity> Get(Guid id)
+        public async Task<PilotEntity> Get(string id)
         {
-            return await this.data.Find(channel => channel.Id == id).FirstOrDefaultAsync();
+            return await this.data.Find(p => p.Id == id).FirstOrDefaultAsync();
         }
 
         /// <summary>
@@ -123,9 +123,9 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public async Task Update(Guid id, PilotEntity entity)
+        public async Task Update(string id, PilotEntity entity)
         {
-            await this.data.ReplaceOneAsync(channel => channel.Id == id, entity);
+            await this.data.ReplaceOneAsync(p => p.Id == id, entity);
         }
 
         #endregion Public Methods

@@ -34,7 +34,7 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        Task<PilotEntity> Get(Guid id);
+        Task<PilotEntity> Get(string id);
 
         /// <summary>
         /// The get.
@@ -78,7 +78,7 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        Task Update(Guid id, PilotEntity entity);
+        Task Update(string id, PilotEntity entity);
 
         #endregion Public Methods
     }

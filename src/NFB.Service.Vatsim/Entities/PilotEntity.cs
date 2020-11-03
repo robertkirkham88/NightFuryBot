@@ -1,7 +1,6 @@
 ﻿namespace NFB.Service.Vatsim.Entities
 {
-    using System;
-
+    using MongoDB.Bson;
     using MongoDB.Bson.Serialization.Attributes;
 
     /// <summary>
@@ -15,7 +14,8 @@
         /// Gets or sets the Id.
         /// </summary>
         [BsonId]
-        public Guid Id { get; set; }
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string Id { get; set; }
 
         /// <summary>
         /// Gets or sets the user id.
