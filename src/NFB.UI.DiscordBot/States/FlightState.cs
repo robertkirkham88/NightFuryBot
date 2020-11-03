@@ -81,6 +81,11 @@
         public Guid? UpdatePilotDataInMessageToken { get; set; }
 
         /// <summary>
+        /// Gets or sets the update voice channel users token.
+        /// </summary>
+        public Guid? UpdateVoiceChannelUsersToken { get; set; }
+
+        /// <summary>
         /// Gets or sets the users in voice channel.
         /// </summary>
         public IList<Guid> UsersInVoiceChannel { get; set; } = new List<Guid>();

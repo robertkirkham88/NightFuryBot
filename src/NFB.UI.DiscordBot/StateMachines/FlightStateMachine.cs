@@ -44,6 +44,7 @@
             // Schedules
             this.Schedule(() => this.UpdatePilotDataSchedule, p => p.UpdatePilotDataInMessageToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
             this.Schedule(() => this.CheckFlightCompletedSchedule, p => p.CheckFlightCompletedToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
+            this.Schedule(() => this.UpdatePilotDataSchedule, p => p.UpdateVoiceChannelUsersToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
 
             // Work flow
             this.Initially(
@@ -77,6 +78,11 @@
                         context => context.Init<CheckFlightCompletedScheduleMessage>(
                             new CheckFlightCompletedScheduleMessage { Id = context.Instance.CorrelationId }),
                         context => context.Instance.StartTime.AddHours(1))
+                    .Schedule(
+                        this.UpdateVoiceChannelUsersSchedule,
+                        context => context.Init<UpdateVoiceChannelUsersScheduleMessage>(
+                            new UpdateVoiceChannelUsersScheduleMessage { Id = context.Instance.CorrelationId }),
+                        context => TimeSpan.FromMinutes(15))
                     .TransitionTo(this.Active),
                 this.When(this.FlightCreatedEvent)
                     .Activity(x => x.OfType<CreateAnnouncementMessageActivity>())
@@ -87,6 +93,11 @@
                         context => context.Init<CheckFlightCompletedScheduleMessage>(
                             new CheckFlightCompletedScheduleMessage { Id = context.Instance.CorrelationId }),
                         context => context.Instance.StartTime.AddHours(1))
+                    .Schedule(
+                        this.UpdateVoiceChannelUsersSchedule,
+                        context => context.Init<UpdateVoiceChannelUsersScheduleMessage>(
+                            new UpdateVoiceChannelUsersScheduleMessage { Id = context.Instance.CorrelationId }),
+                        context => TimeSpan.FromMinutes(15))
                     .TransitionTo(this.Active));
 
             this.During(
@@ -125,6 +136,13 @@
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>()),
                 this.When(this.CheckFlightCompletedSchedule.Received)
                     .Activity(x => x.OfType<CheckFlightCompletedActivity>()),
+                this.When(this.UpdateVoiceChannelUsersSchedule.Received)
+                    .Activity(x => x.OfType<UpdateVoiceChannelUsersActivity>())
+                    .Schedule(
+                        this.UpdateVoiceChannelUsersSchedule,
+                        context => context.Init<UpdateVoiceChannelUsersScheduleMessage>(
+                            new UpdateVoiceChannelUsersScheduleMessage { Id = context.Instance.CorrelationId }),
+                        context => TimeSpan.FromMinutes(15)),
                 this.When(this.FlightCompletedEvent)
                     .Then(
                         context =>
@@ -187,6 +205,11 @@
         /// Gets or sets the update pilot data in message.
         /// </summary>
         public Schedule<FlightState, UpdatePilotDataScheduleMessage> UpdatePilotDataSchedule { get; set; }
+
+        /// <summary>
+        /// Gets or sets the update voice channel users schedule.
+        /// </summary>
+        public Schedule<FlightState, UpdateVoiceChannelUsersScheduleMessage> UpdateVoiceChannelUsersSchedule { get; set; }
 
         /// <summary>
         /// Gets or sets the user joined voice channel event.
