@@ -44,7 +44,7 @@
             // Schedules
             this.Schedule(() => this.UpdatePilotDataSchedule, p => p.UpdatePilotDataInMessageToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
             this.Schedule(() => this.CheckFlightCompletedSchedule, p => p.CheckFlightCompletedToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
-            this.Schedule(() => this.UpdatePilotDataSchedule, p => p.UpdateVoiceChannelUsersToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
+            this.Schedule(() => this.UpdateVoiceChannelUsersSchedule, p => p.UpdateVoiceChannelUsersToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
 
             // Work flow
             this.Initially(
