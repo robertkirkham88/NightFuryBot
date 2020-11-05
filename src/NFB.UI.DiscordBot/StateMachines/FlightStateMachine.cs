@@ -8,8 +8,8 @@
     using MassTransit;
 
     using NFB.Domain.Bus.Events;
-    using NFB.UI.DiscordBot.Activities;
     using NFB.UI.DiscordBot.Schedules;
+    using NFB.UI.DiscordBot.StateMachines.Activities;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>

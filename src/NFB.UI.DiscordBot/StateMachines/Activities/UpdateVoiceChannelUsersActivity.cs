@@ -1,6 +1,7 @@
-﻿namespace NFB.UI.DiscordBot.Activities
+﻿namespace NFB.UI.DiscordBot.StateMachines.Activities
 {
     using System;
+    using System.Linq;
     using System.Threading.Tasks;
 
     using Automatonymous;
@@ -9,18 +10,25 @@
 
     using GreenPipes;
 
+    using MassTransit;
+
     using Microsoft.Extensions.Logging;
 
     using NFB.Domain.Bus.Events;
-    using NFB.UI.DiscordBot.Extensions;
+    using NFB.UI.DiscordBot.Schedules;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
-    /// The delete voice channel activity.
+    /// The update voice channel users activity.
     /// </summary>
-    public class DeleteVoiceChannelActivity : Activity<FlightState, FlightCompletedEvent>
+    public class UpdateVoiceChannelUsersActivity : Activity<FlightState, UpdateVoiceChannelUsersScheduleMessage>
     {
         #region Private Fields
+
+        /// <summary>
+        /// The bus.
+        /// </summary>
+        private readonly IBus bus;
 
         /// <summary>
         /// The client.
@@ -30,24 +38,28 @@
         /// <summary>
         /// The logger.
         /// </summary>
-        private readonly ILogger<DeleteVoiceChannelActivity> logger;
+        private readonly ILogger<UpdateVoiceChannelUsersActivity> logger;
 
         #endregion Private Fields
 
         #region Public Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DeleteVoiceChannelActivity"/> class.
+        /// Initializes a new instance of the <see cref="UpdateVoiceChannelUsersActivity"/> class.
         /// </summary>
         /// <param name="client">
         /// The client.
         /// </param>
+        /// <param name="bus">
+        /// The bus.
+        /// </param>
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public DeleteVoiceChannelActivity(DiscordSocketClient client, ILogger<DeleteVoiceChannelActivity> logger)
+        public UpdateVoiceChannelUsersActivity(DiscordSocketClient client, IBus bus, ILogger<UpdateVoiceChannelUsersActivity> logger)
         {
             this.client = client;
+            this.bus = bus;
             this.logger = logger;
         }
 
@@ -56,7 +68,7 @@
         #region Public Methods
 
         /// <summary>
-        /// Accept the message.
+        /// The accept.
         /// </summary>
         /// <param name="visitor">
         /// The visitor.
@@ -67,7 +79,7 @@
         }
 
         /// <summary>
-        /// Execute the activity.
+        /// The execute the context.
         /// </summary>
         /// <param name="context">
         /// The context.
@@ -78,15 +90,26 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public async Task Execute(BehaviorContext<FlightState, FlightCompletedEvent> context, Behavior<FlightState, FlightCompletedEvent> next)
+        public async Task Execute(BehaviorContext<FlightState, UpdateVoiceChannelUsersScheduleMessage> context, Behavior<FlightState, UpdateVoiceChannelUsersScheduleMessage> next)
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel channel && channel.Users.Count == 0)
+            if (this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel channel)
             {
-                await this.client.DeleteVoiceChannelAsync(context.Instance.VoiceChannelId);
+                foreach (var user in channel.Users.ToList().Where(user => !context.Instance.UsersInVoiceChannel.Contains(user.Id)))
+                {
+                    await this.bus.Publish(
+                        new UserJoinedVoiceChannelEvent { ChannelId = channel.Id, UserId = user.Id });
+                }
 
-                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted voice channel {context.Instance.VoiceChannelId}.");
+                foreach (var userId in context.Instance.UsersInVoiceChannel)
+                {
+                    if (channel.Users.FirstOrDefault(p => p.Id == userId) == null)
+                    {
+                        await this.bus.Publish(
+                            new UserLeftVoiceChannelEvent { ChannelId = channel.Id, UserId = userId });
+                    }
+                }
             }
 
             await next.Execute(context);
@@ -107,7 +130,7 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightCompletedEvent, TException> context, Behavior<FlightState, FlightCompletedEvent> next)
+        public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, UpdateVoiceChannelUsersScheduleMessage, TException> context, Behavior<FlightState, UpdateVoiceChannelUsersScheduleMessage> next)
             where TException : Exception
         {
             await next.Faulted(context);
@@ -121,7 +144,7 @@
         /// </param>
         public void Probe(ProbeContext context)
         {
-            context.CreateScope("delete-voice-channel-activity");
+            context.CreateScope("update-voice-channel-users");
         }
 
         #endregion Public Methods

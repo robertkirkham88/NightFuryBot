@@ -1,7 +1,6 @@
-﻿namespace NFB.UI.DiscordBot.Activities
+﻿namespace NFB.UI.DiscordBot.StateMachines.Activities
 {
     using System;
-    using System.Linq;
     using System.Threading.Tasks;
 
     using Automatonymous;
@@ -9,8 +8,6 @@
     using Discord.WebSocket;
 
     using GreenPipes;
-
-    using MassTransit;
 
     using Microsoft.Extensions.Logging;
 
@@ -21,14 +18,9 @@
     /// <summary>
     /// The update voice channel users activity.
     /// </summary>
-    public class UpdateVoiceChannelUsersActivity : Activity<FlightState, UpdateVoiceChannelUsersScheduleMessage>
+    public class CheckFlightCompletedActivity : Activity<FlightState, CheckFlightCompletedScheduleMessage>
     {
         #region Private Fields
-
-        /// <summary>
-        /// The bus.
-        /// </summary>
-        private readonly IBus bus;
 
         /// <summary>
         /// The client.
@@ -38,28 +30,24 @@
         /// <summary>
         /// The logger.
         /// </summary>
-        private readonly ILogger<UpdateVoiceChannelUsersActivity> logger;
+        private readonly ILogger logger;
 
         #endregion Private Fields
 
         #region Public Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="UpdateVoiceChannelUsersActivity"/> class.
+        /// Initializes a new instance of the <see cref="CheckFlightCompletedActivity"/> class.
         /// </summary>
         /// <param name="client">
         /// The client.
         /// </param>
-        /// <param name="bus">
-        /// The bus.
-        /// </param>
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public UpdateVoiceChannelUsersActivity(DiscordSocketClient client, IBus bus, ILogger<UpdateVoiceChannelUsersActivity> logger)
+        public CheckFlightCompletedActivity(DiscordSocketClient client, ILogger<CheckFlightCompletedActivity> logger)
         {
             this.client = client;
-            this.bus = bus;
             this.logger = logger;
         }
 
@@ -68,7 +56,7 @@
         #region Public Methods
 
         /// <summary>
-        /// The accept.
+        /// Accept the message.
         /// </summary>
         /// <param name="visitor">
         /// The visitor.
@@ -79,7 +67,7 @@
         }
 
         /// <summary>
-        /// The execute the context.
+        /// Execute the activity.
         /// </summary>
         /// <param name="context">
         /// The context.
@@ -90,26 +78,14 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public async Task Execute(BehaviorContext<FlightState, UpdateVoiceChannelUsersScheduleMessage> context, Behavior<FlightState, UpdateVoiceChannelUsersScheduleMessage> next)
+        public async Task Execute(BehaviorContext<FlightState, CheckFlightCompletedScheduleMessage> context, Behavior<FlightState, CheckFlightCompletedScheduleMessage> next)
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel channel)
+            if (this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel
+                    channel && channel.Users.Count == 0)
             {
-                foreach (var user in channel.Users.ToList().Where(user => !context.Instance.UsersInVoiceChannel.Contains(user.Id)))
-                {
-                    await this.bus.Publish(
-                        new UserJoinedVoiceChannelEvent { ChannelId = channel.Id, UserId = user.Id });
-                }
-
-                foreach (var userId in context.Instance.UsersInVoiceChannel)
-                {
-                    if (channel.Users.FirstOrDefault(p => p.Id == userId) == null)
-                    {
-                        await this.bus.Publish(
-                            new UserLeftVoiceChannelEvent { ChannelId = channel.Id, UserId = userId });
-                    }
-                }
+                await context.Publish(new FlightCompletedEvent { Id = context.Instance.CorrelationId });
             }
 
             await next.Execute(context);
@@ -130,10 +106,10 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, UpdateVoiceChannelUsersScheduleMessage, TException> context, Behavior<FlightState, UpdateVoiceChannelUsersScheduleMessage> next)
+        public Task Faulted<TException>(BehaviorExceptionContext<FlightState, CheckFlightCompletedScheduleMessage, TException> context, Behavior<FlightState, CheckFlightCompletedScheduleMessage> next)
             where TException : Exception
         {
-            await next.Faulted(context);
+            return next.Faulted(context);
         }
 
         /// <summary>
@@ -144,7 +120,7 @@
         /// </param>
         public void Probe(ProbeContext context)
         {
-            context.CreateScope("update-voice-channel-users");
+            context.CreateScope("check-flight-completed");
         }
 
         #endregion Public Methods

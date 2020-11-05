@@ -13,8 +13,8 @@
 
     using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Events;
-    using NFB.UI.DiscordBot.Activities;
     using NFB.UI.DiscordBot.StateMachines;
+    using NFB.UI.DiscordBot.StateMachines.Activities;
     using NFB.UI.DiscordBot.States;
 
     using Xunit;

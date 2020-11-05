@@ -1,4 +1,4 @@
-﻿namespace NFB.UI.DiscordBot.Services
+﻿namespace NFB.UI.DiscordBot.Repositories
 {
     using System.Collections.Generic;
     using System.Threading.Tasks;
@@ -8,7 +8,7 @@
     /// <summary>
     /// The SetupService interface.
     /// </summary>
-    public interface IChannelService
+    public interface IChannelRepository
     {
         #region Public Methods
 

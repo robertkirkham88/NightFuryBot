@@ -1,4 +1,4 @@
-﻿namespace NFB.UI.DiscordBot.Activities
+﻿namespace NFB.UI.DiscordBot.StateMachines.Activities
 {
     using System;
     using System.Threading.Tasks;
@@ -9,16 +9,17 @@
 
     using GreenPipes;
 
+    using MassTransit;
+
     using Microsoft.Extensions.Logging;
 
     using NFB.Domain.Bus.Events;
-    using NFB.UI.DiscordBot.Schedules;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
-    /// The update voice channel users activity.
+    /// The flight submission failed activity.
     /// </summary>
-    public class CheckFlightCompletedActivity : Activity<FlightState, CheckFlightCompletedScheduleMessage>
+    public class FlightSubmissionFailedActivity : Activity<FlightState, FlightInvalidEvent>
     {
         #region Private Fields
 
@@ -30,24 +31,33 @@
         /// <summary>
         /// The logger.
         /// </summary>
-        private readonly ILogger logger;
+        private readonly ILogger<FlightSubmissionFailedActivity> logger;
+
+        /// <summary>
+        /// The scheduler.
+        /// </summary>
+        private readonly IMessageScheduler scheduler;
 
         #endregion Private Fields
 
         #region Public Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CheckFlightCompletedActivity"/> class.
+        /// Initializes a new instance of the <see cref="FlightSubmissionFailedActivity"/> class.
         /// </summary>
         /// <param name="client">
         /// The client.
         /// </param>
+        /// <param name="scheduler">
+        /// The scheduler.
+        /// </param>
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public CheckFlightCompletedActivity(DiscordSocketClient client, ILogger<CheckFlightCompletedActivity> logger)
+        public FlightSubmissionFailedActivity(DiscordSocketClient client, IMessageScheduler scheduler, ILogger<FlightSubmissionFailedActivity> logger)
         {
             this.client = client;
+            this.scheduler = scheduler;
             this.logger = logger;
         }
 
@@ -67,7 +77,7 @@
         }
 
         /// <summary>
-        /// Execute the activity.
+        /// Execute the context.
         /// </summary>
         /// <param name="context">
         /// The context.
@@ -78,38 +88,41 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public async Task Execute(BehaviorContext<FlightState, CheckFlightCompletedScheduleMessage> context, Behavior<FlightState, CheckFlightCompletedScheduleMessage> next)
+        public async Task Execute(BehaviorContext<FlightState, FlightInvalidEvent> context, Behavior<FlightState, FlightInvalidEvent> next)
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel
-                    channel && channel.Users.Count == 0)
+            if (this.client.GetChannel(context.Instance.ChannelData.BookChannel) is SocketTextChannel channel)
             {
-                await context.Publish(new FlightCompletedEvent { Id = context.Instance.CorrelationId });
+                var message = await channel.SendMessageAsync(context.Data.ValidationError);
+
+                await this.scheduler.SchedulePublish(
+                    DateTime.UtcNow.AddSeconds(30),
+                    new DiscordMessageExpiredEvent { ChannelId = message.Channel.Id, MessageId = message.Id });
             }
 
             await next.Execute(context);
         }
 
         /// <summary>
-        /// The activity faulted.
+        /// The activity has faulted.
         /// </summary>
+        /// <typeparam name="TException">
+        /// The exception type.
+        /// </typeparam>
         /// <param name="context">
         /// The context.
         /// </param>
         /// <param name="next">
         /// The next.
         /// </param>
-        /// <typeparam name="TException">
-        /// The exception.
-        /// </typeparam>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public Task Faulted<TException>(BehaviorExceptionContext<FlightState, CheckFlightCompletedScheduleMessage, TException> context, Behavior<FlightState, CheckFlightCompletedScheduleMessage> next)
-            where TException : Exception
+        public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightInvalidEvent, TException> context, Behavior<FlightState, FlightInvalidEvent> next)
+                    where TException : Exception
         {
-            return next.Faulted(context);
+            await next.Faulted(context);
         }
 
         /// <summary>
@@ -120,7 +133,7 @@
         /// </param>
         public void Probe(ProbeContext context)
         {
-            context.CreateScope("check-flight-completed");
+            context.CreateScope("flight-invalid");
         }
 
         #endregion Public Methods

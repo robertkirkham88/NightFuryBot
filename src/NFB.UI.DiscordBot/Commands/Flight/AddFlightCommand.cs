@@ -9,7 +9,7 @@
 
     using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Events;
-    using NFB.UI.DiscordBot.Services;
+    using NFB.UI.DiscordBot.Repositories;
 
     /// <summary>
     /// Add a new flight.
@@ -28,7 +28,7 @@
         /// <summary>
         /// The channel service.
         /// </summary>
-        private readonly IChannelService channelService;
+        private readonly IChannelRepository channelService;
 
         #endregion Private Fields
 
@@ -43,7 +43,7 @@
         /// <param name="channelService">
         /// The channel service.
         /// </param>
-        public AddFlightCommand(IBus bus, IChannelService channelService)
+        public AddFlightCommand(IBus bus, IChannelRepository channelService)
         {
             this.bus = bus;
             this.channelService = channelService;

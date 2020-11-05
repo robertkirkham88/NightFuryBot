@@ -1,4 +1,4 @@
-﻿namespace NFB.UI.DiscordBot.Activities
+﻿namespace NFB.UI.DiscordBot.StateMachines.Activities
 {
     using System;
     using System.Threading.Tasks;
@@ -16,9 +16,9 @@
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
-    /// The delete active flight message activity.
+    /// The delete voice channel activity.
     /// </summary>
-    public class DeleteActiveFlightMessageActivity : Activity<FlightState, FlightCompletedEvent>
+    public class DeleteVoiceChannelActivity : Activity<FlightState, FlightCompletedEvent>
     {
         #region Private Fields
 
@@ -30,14 +30,14 @@
         /// <summary>
         /// The logger.
         /// </summary>
-        private readonly ILogger<DeleteActiveFlightMessageActivity> logger;
+        private readonly ILogger<DeleteVoiceChannelActivity> logger;
 
         #endregion Private Fields
 
         #region Public Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DeleteActiveFlightMessageActivity"/> class.
+        /// Initializes a new instance of the <see cref="DeleteVoiceChannelActivity"/> class.
         /// </summary>
         /// <param name="client">
         /// The client.
@@ -45,7 +45,7 @@
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public DeleteActiveFlightMessageActivity(DiscordSocketClient client, ILogger<DeleteActiveFlightMessageActivity> logger)
+        public DeleteVoiceChannelActivity(DiscordSocketClient client, ILogger<DeleteVoiceChannelActivity> logger)
         {
             this.client = client;
             this.logger = logger;
@@ -82,15 +82,11 @@
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (context.Instance.ActiveFlightMessageId != default)
+            if (this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel channel && channel.Users.Count == 0)
             {
-                await this.client.DeleteMessageFromChannelAsync(
-                    context.Instance.ChannelData.ActiveFlightMessageChannel,
-                    context.Instance.ActiveFlightMessageId);
+                await this.client.DeleteVoiceChannelAsync(context.Instance.VoiceChannelId);
 
-                context.Instance.ActiveFlightMessageId = default;
-
-                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted message {context.Instance.ActiveFlightMessageId} in {context.Instance.ChannelData.ActiveFlightMessageChannel}.");
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted voice channel {context.Instance.VoiceChannelId}.");
             }
 
             await next.Execute(context);
@@ -125,7 +121,7 @@
         /// </param>
         public void Probe(ProbeContext context)
         {
-            context.CreateScope("delete-active-flight-message");
+            context.CreateScope("delete-voice-channel-activity");
         }
 
         #endregion Public Methods

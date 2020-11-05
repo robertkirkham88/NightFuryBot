@@ -19,7 +19,7 @@
     using NFB.Domain.Settings;
     using NFB.Infrastructure.CrossCutting.Logging;
     using NFB.Service.Flight.Models;
-    using NFB.Service.Flight.Repository;
+    using NFB.Service.Flight.Repositories;
     using NFB.Service.Flight.StateMachines;
     using NFB.Service.Flight.States;
 

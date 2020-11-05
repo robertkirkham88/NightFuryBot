@@ -1,4 +1,4 @@
-﻿namespace NFB.UI.DiscordBot.Activities
+﻿namespace NFB.UI.DiscordBot.StateMachines.Activities
 {
     using System;
     using System.Linq;

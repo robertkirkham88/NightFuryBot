@@ -7,7 +7,7 @@
     using Discord.WebSocket;
 
     using NFB.UI.DiscordBot.Entities;
-    using NFB.UI.DiscordBot.Services;
+    using NFB.UI.DiscordBot.Repositories;
 
     /// <summary>
     /// The setup command.
@@ -22,7 +22,7 @@
         /// <summary>
         /// The channel service.
         /// </summary>
-        private readonly IChannelService channelService;
+        private readonly IChannelRepository channelService;
 
         #endregion Private Fields
 
@@ -34,7 +34,7 @@
         /// <param name="channelService">
         /// The channel service.
         /// </param>
-        public SetupCommand(IChannelService channelService)
+        public SetupCommand(IChannelRepository channelService)
         {
             this.channelService = channelService;
         }

@@ -1,4 +1,4 @@
-﻿namespace NFB.UI.DiscordBot.Activities
+﻿namespace NFB.UI.DiscordBot.StateMachines.Activities
 {
     using System;
     using System.Threading.Tasks;
@@ -16,9 +16,9 @@
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
-    /// The delete announcement message activity.
+    /// The delete active flight message activity.
     /// </summary>
-    public class DeleteAnnouncementMessageActivity : Activity<FlightState, FlightStartingEvent>
+    public class DeleteActiveFlightMessageActivity : Activity<FlightState, FlightCompletedEvent>
     {
         #region Private Fields
 
@@ -30,14 +30,14 @@
         /// <summary>
         /// The logger.
         /// </summary>
-        private readonly ILogger<DeleteAnnouncementMessageActivity> logger;
+        private readonly ILogger<DeleteActiveFlightMessageActivity> logger;
 
         #endregion Private Fields
 
         #region Public Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DeleteAnnouncementMessageActivity"/> class.
+        /// Initializes a new instance of the <see cref="DeleteActiveFlightMessageActivity"/> class.
         /// </summary>
         /// <param name="client">
         /// The client.
@@ -45,7 +45,7 @@
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public DeleteAnnouncementMessageActivity(DiscordSocketClient client, ILogger<DeleteAnnouncementMessageActivity> logger)
+        public DeleteActiveFlightMessageActivity(DiscordSocketClient client, ILogger<DeleteActiveFlightMessageActivity> logger)
         {
             this.client = client;
             this.logger = logger;
@@ -78,38 +78,40 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public async Task Execute(BehaviorContext<FlightState, FlightStartingEvent> context, Behavior<FlightState, FlightStartingEvent> next)
+        public async Task Execute(BehaviorContext<FlightState, FlightCompletedEvent> context, Behavior<FlightState, FlightCompletedEvent> next)
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (context.Instance.AnnouncementMessageId != default)
+            if (context.Instance.ActiveFlightMessageId != default)
             {
                 await this.client.DeleteMessageFromChannelAsync(
-                    context.Instance.ChannelData.AnnouncementChannel,
-                    context.Instance.AnnouncementMessageId);
+                    context.Instance.ChannelData.ActiveFlightMessageChannel,
+                    context.Instance.ActiveFlightMessageId);
 
-                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted message {context.Instance.AnnouncementMessageId} in {context.Instance.ChannelData.AnnouncementChannel}.");
+                context.Instance.ActiveFlightMessageId = default;
+
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted message {context.Instance.ActiveFlightMessageId} in {context.Instance.ChannelData.ActiveFlightMessageChannel}.");
             }
 
             await next.Execute(context);
         }
 
         /// <summary>
-        /// The message faulted.
+        /// The activity faulted.
         /// </summary>
-        /// <typeparam name="TException">
-        /// The exception.
-        /// </typeparam>
         /// <param name="context">
         /// The context.
         /// </param>
         /// <param name="next">
         /// The next.
         /// </param>
+        /// <typeparam name="TException">
+        /// The exception.
+        /// </typeparam>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightStartingEvent, TException> context, Behavior<FlightState, FlightStartingEvent> next)
+        public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightCompletedEvent, TException> context, Behavior<FlightState, FlightCompletedEvent> next)
             where TException : Exception
         {
             await next.Faulted(context);
@@ -123,7 +125,7 @@
         /// </param>
         public void Probe(ProbeContext context)
         {
-            context.CreateScope("delete-announcement-message-activity");
+            context.CreateScope("delete-active-flight-message");
         }
 
         #endregion Public Methods

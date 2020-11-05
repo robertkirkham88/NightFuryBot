@@ -1,4 +1,4 @@
-﻿namespace NFB.Service.Flight.Repository
+﻿namespace NFB.Service.Flight.Repositories
 {
     using System.Collections.Generic;
     using System.Linq;

@@ -1,4 +1,4 @@
-﻿namespace NFB.UI.DiscordBot.Activities
+﻿namespace NFB.UI.DiscordBot.StateMachines.Activities
 {
     using System;
     using System.Threading.Tasks;
@@ -12,13 +12,14 @@
     using Microsoft.Extensions.Logging;
 
     using NFB.Domain.Bus.Events;
+    using NFB.UI.DiscordBot.Embeds;
     using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
-    /// The create voice channel activity.
+    /// The create active flight message activity.
     /// </summary>
-    public class CreateVoiceChannelActivity : Activity<FlightState, FlightStartingEvent>, Activity<FlightState, FlightCreatedEvent>
+    public class CreateActiveFlightMessageActivity : Activity<FlightState, FlightStartingEvent>, Activity<FlightState, FlightCreatedEvent>
     {
         #region Private Fields
 
@@ -30,14 +31,14 @@
         /// <summary>
         /// The logger.
         /// </summary>
-        private readonly ILogger<CreateVoiceChannelActivity> logger;
+        private readonly ILogger<CreateActiveFlightMessageActivity> logger;
 
         #endregion Private Fields
 
         #region Public Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CreateVoiceChannelActivity"/> class.
+        /// Initializes a new instance of the <see cref="CreateActiveFlightMessageActivity"/> class.
         /// </summary>
         /// <param name="client">
         /// The client.
@@ -45,7 +46,7 @@
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public CreateVoiceChannelActivity(DiscordSocketClient client, ILogger<CreateVoiceChannelActivity> logger)
+        public CreateActiveFlightMessageActivity(DiscordSocketClient client, ILogger<CreateActiveFlightMessageActivity> logger)
         {
             this.client = client;
             this.logger = logger;
@@ -82,24 +83,22 @@
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            var existingVoiceChannel = this.client.GetChannel(p => p.Name == context.Instance.VoiceChannelName);
+            if (!(this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel voiceChannel))
+                throw new ArgumentNullException($"SAGA {context.Instance.CorrelationId}: Voice channel with ID {context.Instance.VoiceChannelId} not found.");
 
-            if (existingVoiceChannel == null)
-            {
-                var voiceChannel = await this.client.CreateVoiceChannelAsync(
-                                       context.Instance.ChannelData.Category,
-                                       context.Instance.VoiceChannelName);
+            // Create a new message.
+            var embed = await FlightActiveEmbed.CreateEmbed(
+                            context.Instance.Origin,
+                            context.Instance.Destination,
+                            context.Instance.StartTime,
+                            voiceChannel,
+                            context.Instance.VatsimPilotData);
 
-                context.Instance.VoiceChannelId = voiceChannel.Id;
+            var message = await this.client.SendMessageToChannelAsync(
+                              context.Instance.ChannelData.ActiveFlightMessageChannel,
+                              embed: embed);
 
-                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Created new voice channel {context.Instance.VoiceChannelId} in {context.Instance.ChannelData.Category}.");
-            }
-            else
-            {
-                context.Instance.VoiceChannelId = existingVoiceChannel.Id;
-
-                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Found existing voice channel {context.Instance.VoiceChannelId} in {context.Instance.ChannelData.Category}.");
-            }
+            context.Instance.ActiveFlightMessageId = message.Id;
 
             await next.Execute(context);
         }
@@ -120,75 +119,65 @@
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            var existingVoiceChannel = this.client.GetChannel(p => p.Name == context.Instance.VoiceChannelName);
+            if (!(this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel voiceChannel))
+                throw new ArgumentNullException($"SAGA {context.Instance.CorrelationId}: Voice channel with ID {context.Instance.VoiceChannelId} not found.");
 
-            if (existingVoiceChannel == null)
-            {
-                var voiceChannel = await this.client.CreateVoiceChannelAsync(
-                                       context.Instance.ChannelData.Category,
-                                       context.Instance.VoiceChannelName);
+            // Create a new message.
+            var embed = await FlightActiveEmbed.CreateEmbed(
+                            context.Instance.Origin,
+                            context.Instance.Destination,
+                            context.Instance.StartTime,
+                            voiceChannel,
+                            context.Instance.VatsimPilotData);
 
-                context.Instance.VoiceChannelId = voiceChannel.Id;
+            var message = await this.client.SendMessageToChannelAsync(
+                              context.Instance.ChannelData.ActiveFlightMessageChannel,
+                              embed: embed);
 
-                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Created new voice channel {context.Instance.VoiceChannelId} in {context.Instance.ChannelData.Category}.");
-            }
-            else
-            {
-                context.Instance.VoiceChannelId = existingVoiceChannel.Id;
-
-                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Found existing voice channel {context.Instance.VoiceChannelId} in {context.Instance.ChannelData.Category}.");
-            }
+            context.Instance.ActiveFlightMessageId = message.Id;
 
             await next.Execute(context);
         }
 
         /// <summary>
-        /// Faulted exception
+        /// The message faulted.
         /// </summary>
+        /// <typeparam name="TException">
+        /// The exception.
+        /// </typeparam>
         /// <param name="context">
         /// The context.
         /// </param>
         /// <param name="next">
         /// The next.
         /// </param>
-        /// <typeparam name="TException">
-        /// The exception.
-        /// </typeparam>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
         public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightStartingEvent, TException> context, Behavior<FlightState, FlightStartingEvent> next)
-            where TException : Exception
+                    where TException : Exception
         {
-            var voiceChannel = this.client.GetChannel(p => p.Name == context.Instance.VoiceChannelName);
-            if (voiceChannel != null)
-                await this.client.DeleteVoiceChannelAsync(voiceChannel.Id);
-
             await next.Faulted(context);
         }
 
         /// <summary>
-        /// Faulted activity.
+        /// The message faulted.
         /// </summary>
+        /// <typeparam name="TException">
+        /// The exception.
+        /// </typeparam>
         /// <param name="context">
         /// The context.
         /// </param>
         /// <param name="next">
         /// The next.
         /// </param>
-        /// <typeparam name="TException">
-        /// The exception.
-        /// </typeparam>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
         public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightCreatedEvent, TException> context, Behavior<FlightState, FlightCreatedEvent> next)
-            where TException : Exception
+                    where TException : Exception
         {
-            var voiceChannel = this.client.GetChannel(p => p.Name == context.Instance.VoiceChannelName);
-            if (voiceChannel != null)
-                await this.client.DeleteVoiceChannelAsync(voiceChannel.Id);
-
             await next.Faulted(context);
         }
 
@@ -200,7 +189,7 @@
         /// </param>
         public void Probe(ProbeContext context)
         {
-            context.CreateScope("create-discord-voice-channel");
+            context.CreateScope("create-active-flight-message");
         }
 
         #endregion Public Methods

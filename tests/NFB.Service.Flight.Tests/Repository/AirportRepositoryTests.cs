@@ -3,7 +3,7 @@
     using System.Collections.Generic;
 
     using NFB.Service.Flight.Models;
-    using NFB.Service.Flight.Repository;
+    using NFB.Service.Flight.Repositories;
 
     using Xunit;
 

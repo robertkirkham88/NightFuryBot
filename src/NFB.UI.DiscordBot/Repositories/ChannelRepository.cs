@@ -1,4 +1,4 @@
-﻿namespace NFB.UI.DiscordBot.Services
+﻿namespace NFB.UI.DiscordBot.Repositories
 {
     using System;
     using System.Collections.Generic;
@@ -12,7 +12,7 @@
     /// <summary>
     /// The setup service.
     /// </summary>
-    public class ChannelService : IChannelService
+    public class ChannelRepository : IChannelRepository
     {
         #region Private Fields
 
@@ -26,12 +26,12 @@
         #region Public Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ChannelService"/> class.
+        /// Initializes a new instance of the <see cref="ChannelRepository"/> class.
         /// </summary>
         /// <param name="settings">
         /// The settings.
         /// </param>
-        public ChannelService(ChannelSettings settings)
+        public ChannelRepository(ChannelSettings settings)
         {
             var client = new MongoClient(settings.ConnectionString);
             var database = client.GetDatabase(settings.DatabaseName);

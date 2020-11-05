@@ -9,7 +9,7 @@
 
     using NFB.Domain.Bus.DTOs;
     using NFB.Domain.Bus.Events;
-    using NFB.Service.Flight.Repository;
+    using NFB.Service.Flight.Repositories;
     using NFB.Service.Flight.States;
 
     /// <summary>
