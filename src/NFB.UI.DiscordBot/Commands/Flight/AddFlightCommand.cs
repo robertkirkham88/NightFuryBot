@@ -88,8 +88,15 @@
 
             if (channel == null)
             {
-                await this.Context.Channel.SendMessageAsync(
+                var errorMessage = await this.Context.Channel.SendMessageAsync(
                     "It looks like you cannot book a flight from here! Please try again from one of the booking channels.");
+
+                await this.bus.Publish(
+                    new DiscordMessageExpiredEvent
+                    {
+                        ChannelId = this.Context.Channel.Id,
+                        MessageId = errorMessage.Id
+                    });
 
                 return;
             }
