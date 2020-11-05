@@ -109,7 +109,7 @@
 
             var message = await this.client.SendMessageToChannelAsync(
                               context.Instance.ChannelData.AnnouncementChannel,
-                              embed: FlightCreatedEmbed.CreateEmbed(context.Instance.Origin, context.Instance.Destination, context.Instance.StartTime));
+                              embed: FlightAnnouncementEmbed.CreateEmbed(context.Instance.Origin, context.Instance.Destination, context.Instance.StartTime));
 
             context.Instance.AnnouncementMessageId = message.Id;
 

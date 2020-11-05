@@ -68,7 +68,7 @@
             embedBuilder.AddField("Status", "Started");
             embedBuilder.AddField("Origin", origin.ICAO, true);
             embedBuilder.AddField("Destination", destination.ICAO, true);
-            embedBuilder.AddField("Planned departure time", $"{startTime:g} UTC");
+            embedBuilder.AddField("Planned departure time", $"{startTime:ddd dd MMM yyyy HH:mm} UTC");
             embedBuilder.AddField("Pilots", pilotsText);
 
             if (!vatsimData.Any()) return embedBuilder.Build();

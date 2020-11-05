@@ -7,9 +7,9 @@
     using NFB.Domain.Bus.DTOs;
 
     /// <summary>
-    /// The flight created embed.
+    /// The flight announcement embed.
     /// </summary>
-    public static class FlightCreatedEmbed
+    public static class FlightAnnouncementEmbed
     {
         #region Public Methods
 
@@ -35,7 +35,7 @@
             embedBuilder.AddField("Status", "Not started");
             embedBuilder.AddField("Origin", origin.ICAO, true);
             embedBuilder.AddField("Destination", destination.ICAO, true);
-            embedBuilder.AddField("Planned departure time", $"{startTime:g} UTC");
+            embedBuilder.AddField("Planned departure time", $"{startTime:ddd dd MMM yyyy HH:mm} UTC");
             embedBuilder.AddField("Map", "TBC");
 
             return embedBuilder.Build();
