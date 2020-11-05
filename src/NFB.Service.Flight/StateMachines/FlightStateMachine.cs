@@ -29,6 +29,7 @@
             // Events
             this.Event(() => this.FlightSubmittedEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.FlightCreatedEvent, x => x.CorrelateById(p => p.Message.Id));
+            this.Event(() => this.FlightCompletedEvent, x => x.CorrelateById(p => p.Message.Id));
 
             // Schedules
             this.Schedule(
@@ -123,6 +124,10 @@
                             return @event;
                         })
                     .TransitionTo(this.Started));
+
+            this.DuringAny(
+                this.When(this.FlightCompletedEvent)
+                    .Finalize());
         }
 
         #endregion Public Constructors
@@ -133,6 +138,11 @@
         /// Gets or sets the created.
         /// </summary>
         public State Created { get; set; }
+
+        /// <summary>
+        /// Gets or sets the flight completed event.
+        /// </summary>
+        public Event<FlightCompletedEvent> FlightCompletedEvent { get; set; }
 
         /// <summary>
         /// Gets or sets the flight created event.
