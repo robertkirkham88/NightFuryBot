@@ -106,7 +106,8 @@
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            context.Instance.UsersInVoiceChannel.Add(context.Data.UserId.ToGuid());
+            if (context.Instance.UsersInVoiceChannel.Any(p => p == context.Data.UserId) == false)
+                context.Instance.UsersInVoiceChannel.Add(context.Data.UserId);
 
             await this.UpdateChannelMessage(context.Instance, TimeSpan.FromSeconds(0));
             await next.Execute(context);
@@ -128,8 +129,8 @@
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (context.Instance.UsersInVoiceChannel.Any(p => p == context.Data.UserId.ToGuid()))
-                context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId.ToGuid());
+            if (context.Instance.UsersInVoiceChannel.Any(p => p == context.Data.UserId))
+                context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId);
 
             await this.UpdateChannelMessage(context.Instance, TimeSpan.FromSeconds(0));
             await next.Execute(context);
@@ -312,8 +313,8 @@
             if (minimumPreviousEditTimeSpan == null)
                 minimumPreviousEditTimeSpan = TimeSpan.FromMinutes(1);
 
-            if (!(this.client.GetChannel(state.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel voiceChannel))
-                throw new ArgumentNullException($"Voice channel with ID {state.VoiceChannelUlongId.GetValueOrDefault()} not found.");
+            if (!(this.client.GetChannel(state.VoiceChannelId) is SocketVoiceChannel voiceChannel))
+                throw new ArgumentNullException($"Voice channel with ID {state.VoiceChannelId} not found.");
 
             this.logger.LogInformation($"SAGA {state.CorrelationId}: Updating {state.ActiveFlightMessageId} with {minimumPreviousEditTimeSpan.GetValueOrDefault().TotalSeconds}sec time constraint.");
 

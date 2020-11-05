@@ -15,7 +15,6 @@
     using Microsoft.Extensions.Logging;
 
     using NFB.Domain.Bus.Events;
-    using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.Schedules;
     using NFB.UI.DiscordBot.States;
 
@@ -95,9 +94,9 @@
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel channel)
+            if (this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel channel)
             {
-                foreach (var user in channel.Users.ToList().Where(user => !context.Instance.UsersInVoiceChannel.Contains(user.Id.ToGuid())))
+                foreach (var user in channel.Users.ToList().Where(user => !context.Instance.UsersInVoiceChannel.Contains(user.Id)))
                 {
                     await this.bus.Publish(
                         new UserJoinedVoiceChannelEvent { ChannelId = channel.Id, UserId = user.Id });
@@ -105,10 +104,10 @@
 
                 foreach (var userId in context.Instance.UsersInVoiceChannel)
                 {
-                    if (channel.Users.FirstOrDefault(p => p.Id == userId.ToULong()) == null)
+                    if (channel.Users.FirstOrDefault(p => p.Id == userId) == null)
                     {
                         await this.bus.Publish(
-                            new UserLeftVoiceChannelEvent { ChannelId = channel.Id, UserId = userId.ToULong() });
+                            new UserLeftVoiceChannelEvent { ChannelId = channel.Id, UserId = userId });
                     }
                 }
             }

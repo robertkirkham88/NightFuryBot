@@ -9,7 +9,6 @@
 
     using NFB.Domain.Bus.Events;
     using NFB.UI.DiscordBot.Activities;
-    using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.Schedules;
     using NFB.UI.DiscordBot.States;
 
@@ -37,9 +36,9 @@
             this.Event(() => this.FlightCreatedEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.FlightCompletedEvent, x => x.CorrelateById(p => p.Message.Id));
             this.Event(() => this.FlightStartingEvent, x => x.CorrelateById(p => p.Message.Id));
-            this.Event(() => this.UserJoinedVoiceChannelEvent, x => x.CorrelateBy(p => p.VoiceChannelId, p => p.Message.ChannelId.ToGuid()));
-            this.Event(() => this.UserLeftVoiceChannelEvent, x => x.CorrelateBy(p => p.VoiceChannelId, p => p.Message.ChannelId.ToGuid()));
-            this.Event(() => this.VatsimPilotUpdatedEvent, x => x.CorrelateBy((state, context) => state.UsersInVoiceChannel.Contains(context.Message.UserId.ToGuid())));
+            this.Event(() => this.UserJoinedVoiceChannelEvent, x => x.CorrelateBy<ulong>(p => p.VoiceChannelId, p => p.Message.ChannelId));
+            this.Event(() => this.UserLeftVoiceChannelEvent, x => x.CorrelateBy<ulong>(p => p.VoiceChannelId, p => p.Message.ChannelId));
+            this.Event(() => this.VatsimPilotUpdatedEvent, x => x.CorrelateBy((state, context) => state.UsersInVoiceChannel.Contains(context.Message.UserId)));
 
             // Schedules
             this.Schedule(() => this.UpdatePilotDataSchedule, p => p.UpdatePilotDataInMessageToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));

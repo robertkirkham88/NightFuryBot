@@ -90,17 +90,15 @@
                                        context.Instance.ChannelData.Category,
                                        context.Instance.VoiceChannelName);
 
-                context.Instance.VoiceChannelUlongId = voiceChannel.Id;
-                context.Instance.VoiceChannelId = voiceChannel.Id.ToGuid();
+                context.Instance.VoiceChannelId = voiceChannel.Id;
 
-                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Created new voice channel {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} in {context.Instance.ChannelData.Category}.");
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Created new voice channel {context.Instance.VoiceChannelId} in {context.Instance.ChannelData.Category}.");
             }
             else
             {
-                context.Instance.VoiceChannelUlongId = existingVoiceChannel.Id;
-                context.Instance.VoiceChannelId = existingVoiceChannel.Id.ToGuid();
+                context.Instance.VoiceChannelId = existingVoiceChannel.Id;
 
-                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Found existing voice channel {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} in {context.Instance.ChannelData.Category}.");
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Found existing voice channel {context.Instance.VoiceChannelId} in {context.Instance.ChannelData.Category}.");
             }
 
             await next.Execute(context);
@@ -130,17 +128,15 @@
                                        context.Instance.ChannelData.Category,
                                        context.Instance.VoiceChannelName);
 
-                context.Instance.VoiceChannelUlongId = voiceChannel.Id;
-                context.Instance.VoiceChannelId = voiceChannel.Id.ToGuid();
+                context.Instance.VoiceChannelId = voiceChannel.Id;
 
-                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Created new voice channel {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} in {context.Instance.ChannelData.Category}.");
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Created new voice channel {context.Instance.VoiceChannelId} in {context.Instance.ChannelData.Category}.");
             }
             else
             {
-                context.Instance.VoiceChannelUlongId = existingVoiceChannel.Id;
-                context.Instance.VoiceChannelId = existingVoiceChannel.Id.ToGuid();
+                context.Instance.VoiceChannelId = existingVoiceChannel.Id;
 
-                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Found existing voice channel {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} in {context.Instance.ChannelData.Category}.");
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Found existing voice channel {context.Instance.VoiceChannelId} in {context.Instance.ChannelData.Category}.");
             }
 
             await next.Execute(context);

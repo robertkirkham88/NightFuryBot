@@ -88,7 +88,7 @@
         /// <summary>
         /// Gets or sets the users in voice channel.
         /// </summary>
-        public IList<Guid> UsersInVoiceChannel { get; set; } = new List<Guid>();
+        public IList<ulong> UsersInVoiceChannel { get; set; } = new List<ulong>();
 
         /// <summary>
         /// Gets or sets the vatsim pilot data.
@@ -101,19 +101,14 @@
         public int Version { get; set; }
 
         /// <summary>
-        /// Gets or sets the voice channel id.
+        /// Gets or sets the voice channel ulong id.
         /// </summary>
-        public Guid? VoiceChannelId { get; set; }
+        public ulong VoiceChannelId { get; set; }
 
         /// <summary>
         /// The voice channel name.
         /// </summary>
         public string VoiceChannelName => $"{this.Origin.ICAO}-{this.Destination.ICAO}-{this.CorrelationId.ToString().Substring(0, 3)}";
-
-        /// <summary>
-        /// Gets or sets the voice channel ulong id.
-        /// </summary>
-        public ulong? VoiceChannelUlongId { get; set; }
 
         #endregion Public Properties
     }

@@ -9,7 +9,6 @@
     using GreenPipes;
 
     using NFB.Domain.Bus.Events;
-    using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
@@ -44,8 +43,8 @@
         /// </returns>
         public async Task Execute(BehaviorContext<FlightState, UserLeftVoiceChannelEvent> context, Behavior<FlightState, UserLeftVoiceChannelEvent> next)
         {
-            if (context.Instance.UsersInVoiceChannel.Contains(context.Data.UserId.ToGuid()))
-                context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId.ToGuid());
+            if (context.Instance.UsersInVoiceChannel.Contains(context.Data.UserId))
+                context.Instance.UsersInVoiceChannel.Remove(context.Data.UserId);
 
             var vatsimData =
                 context.Instance.VatsimPilotData.FirstOrDefault(p => p.UserId == context.Data.UserId);
@@ -62,14 +61,15 @@
         /// <summary>
         /// The activity faulted.
         /// </summary>
+        /// <typeparam name="TException">
+        /// The exception.
+        /// </typeparam>
         /// <param name="context">
         /// The context.
         /// </param>
         /// <param name="next">
         /// The next.
         /// </param>
-        /// <typeparam name="TException">
-        /// </typeparam>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>

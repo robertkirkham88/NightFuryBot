@@ -10,7 +10,6 @@
     using Microsoft.Extensions.Logging;
 
     using NFB.Domain.Bus.Events;
-    using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
@@ -71,8 +70,8 @@
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (!context.Instance.UsersInVoiceChannel.Contains(context.Data.UserId.ToGuid()))
-                context.Instance.UsersInVoiceChannel.Add(context.Data.UserId.ToGuid());
+            if (!context.Instance.UsersInVoiceChannel.Contains(context.Data.UserId))
+                context.Instance.UsersInVoiceChannel.Add(context.Data.UserId);
 
             await next.Execute(context);
         }

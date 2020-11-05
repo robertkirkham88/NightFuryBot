@@ -82,7 +82,7 @@
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel
+            if (this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel
                     channel && channel.Users.Count == 0)
             {
                 await context.Publish(new FlightCompletedEvent { Id = context.Instance.CorrelationId });

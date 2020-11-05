@@ -83,8 +83,8 @@
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (!(this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel voiceChannel))
-                throw new ArgumentNullException($"SAGA {context.Instance.CorrelationId}: Voice channel with ID {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} not found.");
+            if (!(this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel voiceChannel))
+                throw new ArgumentNullException($"SAGA {context.Instance.CorrelationId}: Voice channel with ID {context.Instance.VoiceChannelId} not found.");
 
             // Create a new message.
             var embed = await FlightActiveEmbed.CreateEmbed(
@@ -119,8 +119,8 @@
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (!(this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel voiceChannel))
-                throw new ArgumentNullException($"SAGA {context.Instance.CorrelationId}: Voice channel with ID {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} not found.");
+            if (!(this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel voiceChannel))
+                throw new ArgumentNullException($"SAGA {context.Instance.CorrelationId}: Voice channel with ID {context.Instance.VoiceChannelId} not found.");
 
             // Create a new message.
             var embed = await FlightActiveEmbed.CreateEmbed(

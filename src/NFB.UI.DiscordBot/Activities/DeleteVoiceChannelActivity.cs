@@ -82,11 +82,11 @@
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel channel && channel.Users.Count == 0)
+            if (this.client.GetChannel(context.Instance.VoiceChannelId) is SocketVoiceChannel channel && channel.Users.Count == 0)
             {
-                await this.client.DeleteVoiceChannelAsync(context.Instance.VoiceChannelUlongId.GetValueOrDefault());
+                await this.client.DeleteVoiceChannelAsync(context.Instance.VoiceChannelId);
 
-                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted voice channel {context.Instance.VoiceChannelUlongId.GetValueOrDefault()}.");
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted voice channel {context.Instance.VoiceChannelId}.");
             }
 
             await next.Execute(context);
