@@ -39,6 +39,7 @@
             this.Event(() => this.UserJoinedVoiceChannelEvent, x => x.CorrelateBy<ulong>(p => p.VoiceChannelId, p => p.Message.ChannelId));
             this.Event(() => this.UserLeftVoiceChannelEvent, x => x.CorrelateBy<ulong>(p => p.VoiceChannelId, p => p.Message.ChannelId));
             this.Event(() => this.VatsimPilotUpdatedEvent, x => x.CorrelateBy((state, context) => state.UsersInVoiceChannel.Contains(context.Message.UserId)));
+            this.Event(() => this.VoiceChannelRemovedEvent, x => x.CorrelateBy<ulong>(p => p.VoiceChannelId, p => p.Message.Id));
 
             // Schedules
             this.Schedule(() => this.UpdatePilotDataSchedule, p => p.UpdatePilotDataInMessageToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
@@ -142,6 +143,8 @@
                         context => context.Init<UpdateVoiceChannelUsersScheduleMessage>(
                             new UpdateVoiceChannelUsersScheduleMessage { Id = context.Instance.CorrelationId }),
                         context => TimeSpan.FromMinutes(15)),
+                this.When(this.VoiceChannelRemovedEvent)
+                    .Publish((context) => new FlightCompletedEvent { Id = context.Instance.CorrelationId }),
                 this.When(this.FlightCompletedEvent)
                     .Activity(x => x.OfType<DeleteActiveFlightMessageActivity>())
                     .Activity(x => x.OfType<DeleteVoiceChannelActivity>())
@@ -151,6 +154,15 @@
                                 Thread.Sleep(TimeSpan.FromSeconds(3));
                             })
                     .Finalize());
+
+            this.During(
+                this.Final,
+                this.Ignore(this.UpdateVoiceChannelUsersSchedule.Received),
+                this.Ignore(this.CheckFlightCompletedSchedule.Received),
+                this.Ignore(this.UpdatePilotDataSchedule.Received),
+                this.Ignore(this.VoiceChannelRemovedEvent),
+                this.Ignore(this.VatsimPilotUpdatedEvent),
+                this.Ignore(this.FlightCompletedEvent));
         }
 
         #endregion Public Constructors
@@ -226,6 +238,11 @@
         /// Gets or sets the vatsim pilot updated event.
         /// </summary>
         public Event<VatsimPilotUpdatedEvent> VatsimPilotUpdatedEvent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the voice channel removed event.
+        /// </summary>
+        public Event<VoiceChannelRemovedEvent> VoiceChannelRemovedEvent { get; set; }
 
         #endregion Public Properties
     }

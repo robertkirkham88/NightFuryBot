@@ -133,6 +133,7 @@
             this.client.LoggedIn += this.OnLoggedIn;
             this.client.Ready += this.OnReady;
             this.client.UserVoiceStateUpdated += this.UseVoiceStatusUpdate;
+            this.client.ChannelDestroyed += this.ChannelDestroyed;
 
             try
             {
@@ -174,6 +175,29 @@
         #endregion Public Methods
 
         #region Private Methods
+
+        /// <summary>
+        /// Channel destroyed.
+        /// </summary>
+        /// <param name="channel">
+        /// The channel.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
+        private async Task ChannelDestroyed(SocketChannel channel)
+        {
+            switch (channel)
+            {
+                case SocketVoiceChannel _:
+                    await this.bus.Publish(new VoiceChannelRemovedEvent { Id = channel.Id });
+                    break;
+
+                case SocketTextChannel _:
+                    await this.bus.Publish(new TextChannelRemovedEvent { Id = channel.Id });
+                    break;
+            }
+        }
 
         /// <summary>
         /// User joined voice channel.

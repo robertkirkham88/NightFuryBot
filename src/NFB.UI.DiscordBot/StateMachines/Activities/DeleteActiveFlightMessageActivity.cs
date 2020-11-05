@@ -18,7 +18,7 @@
     /// <summary>
     /// The delete active flight message activity.
     /// </summary>
-    public class DeleteActiveFlightMessageActivity : Activity<FlightState, FlightCompletedEvent>
+    public class DeleteActiveFlightMessageActivity : Activity<FlightState, FlightCompletedEvent>, Activity<FlightState, VoiceChannelRemovedEvent>
     {
         #region Private Fields
 
@@ -97,6 +97,36 @@
         }
 
         /// <summary>
+        /// Execute the activity.
+        /// </summary>
+        /// <param name="context">
+        /// The context.
+        /// </param>
+        /// <param name="next">
+        /// The next.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
+        public async Task Execute(BehaviorContext<FlightState, VoiceChannelRemovedEvent> context, Behavior<FlightState, VoiceChannelRemovedEvent> next)
+        {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
+            if (context.Instance.ActiveFlightMessageId != default)
+            {
+                await this.client.DeleteMessageFromChannelAsync(
+                    context.Instance.ChannelData.ActiveFlightMessageChannel,
+                    context.Instance.ActiveFlightMessageId);
+
+                context.Instance.ActiveFlightMessageId = default;
+
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted message {context.Instance.ActiveFlightMessageId} in {context.Instance.ChannelData.ActiveFlightMessageChannel}.");
+            }
+
+            await next.Execute(context);
+        }
+
+        /// <summary>
         /// The activity faulted.
         /// </summary>
         /// <param name="context">
@@ -112,6 +142,27 @@
         /// The <see cref="Task"/>.
         /// </returns>
         public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightCompletedEvent, TException> context, Behavior<FlightState, FlightCompletedEvent> next)
+            where TException : Exception
+        {
+            await next.Faulted(context);
+        }
+
+        /// <summary>
+        /// The activity faulted.
+        /// </summary>
+        /// <param name="context">
+        /// The context.
+        /// </param>
+        /// <param name="next">
+        /// The next.
+        /// </param>
+        /// <typeparam name="TException">
+        /// The exception.
+        /// </typeparam>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
+        public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, VoiceChannelRemovedEvent, TException> context, Behavior<FlightState, VoiceChannelRemovedEvent> next)
             where TException : Exception
         {
             await next.Faulted(context);
