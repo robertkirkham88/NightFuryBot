@@ -12,13 +12,13 @@
     using Microsoft.Extensions.Logging;
 
     using NFB.Domain.Bus.Events;
-    using NFB.UI.DiscordBot.Schedules;
+    using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
-    /// The update voice channel users activity.
+    /// The delete voice channel activity.
     /// </summary>
-    public class CheckFlightCompletedActivity : Activity<FlightState, CheckFlightCompletedScheduleMessage>
+    public class DeleteVoiceChannelActivity : Activity<FlightState, FlightCompletedEvent>
     {
         #region Private Fields
 
@@ -30,14 +30,14 @@
         /// <summary>
         /// The logger.
         /// </summary>
-        private readonly ILogger logger;
+        private readonly ILogger<DeleteVoiceChannelActivity> logger;
 
         #endregion Private Fields
 
         #region Public Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CheckFlightCompletedActivity"/> class.
+        /// Initializes a new instance of the <see cref="DeleteVoiceChannelActivity"/> class.
         /// </summary>
         /// <param name="client">
         /// The client.
@@ -45,7 +45,7 @@
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public CheckFlightCompletedActivity(DiscordSocketClient client, ILogger<CheckFlightCompletedActivity> logger)
+        public DeleteVoiceChannelActivity(DiscordSocketClient client, ILogger<DeleteVoiceChannelActivity> logger)
         {
             this.client = client;
             this.logger = logger;
@@ -78,14 +78,15 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public async Task Execute(BehaviorContext<FlightState, CheckFlightCompletedScheduleMessage> context, Behavior<FlightState, CheckFlightCompletedScheduleMessage> next)
+        public async Task Execute(BehaviorContext<FlightState, FlightCompletedEvent> context, Behavior<FlightState, FlightCompletedEvent> next)
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel
-                    channel && channel.Users.Count == 0)
+            if (this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel channel && channel.Users.Count == 0)
             {
-                await context.Publish(new FlightCompletedEvent { Id = context.Instance.CorrelationId });
+                await this.client.DeleteVoiceChannelAsync(context.Instance.VoiceChannelUlongId.GetValueOrDefault());
+
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted voice channel {context.Instance.VoiceChannelUlongId.GetValueOrDefault()}.");
             }
 
             await next.Execute(context);
@@ -106,10 +107,10 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public Task Faulted<TException>(BehaviorExceptionContext<FlightState, CheckFlightCompletedScheduleMessage, TException> context, Behavior<FlightState, CheckFlightCompletedScheduleMessage> next)
+        public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightCompletedEvent, TException> context, Behavior<FlightState, FlightCompletedEvent> next)
             where TException : Exception
         {
-            return next.Faulted(context);
+            await next.Faulted(context);
         }
 
         /// <summary>
@@ -120,7 +121,7 @@
         /// </param>
         public void Probe(ProbeContext context)
         {
-            context.CreateScope("check-flight-completed");
+            context.CreateScope("delete-voice-channel-activity");
         }
 
         #endregion Public Methods

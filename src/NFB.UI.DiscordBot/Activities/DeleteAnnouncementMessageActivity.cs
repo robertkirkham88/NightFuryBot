@@ -12,13 +12,13 @@
     using Microsoft.Extensions.Logging;
 
     using NFB.Domain.Bus.Events;
-    using NFB.UI.DiscordBot.Schedules;
+    using NFB.UI.DiscordBot.Extensions;
     using NFB.UI.DiscordBot.States;
 
     /// <summary>
-    /// The update voice channel users activity.
+    /// The delete announcement message activity.
     /// </summary>
-    public class CheckFlightCompletedActivity : Activity<FlightState, CheckFlightCompletedScheduleMessage>
+    public class DeleteAnnouncementMessageActivity : Activity<FlightState, FlightStartingEvent>
     {
         #region Private Fields
 
@@ -30,14 +30,14 @@
         /// <summary>
         /// The logger.
         /// </summary>
-        private readonly ILogger logger;
+        private readonly ILogger<DeleteAnnouncementMessageActivity> logger;
 
         #endregion Private Fields
 
         #region Public Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CheckFlightCompletedActivity"/> class.
+        /// Initializes a new instance of the <see cref="DeleteAnnouncementMessageActivity"/> class.
         /// </summary>
         /// <param name="client">
         /// The client.
@@ -45,7 +45,7 @@
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public CheckFlightCompletedActivity(DiscordSocketClient client, ILogger<CheckFlightCompletedActivity> logger)
+        public DeleteAnnouncementMessageActivity(DiscordSocketClient client, ILogger<DeleteAnnouncementMessageActivity> logger)
         {
             this.client = client;
             this.logger = logger;
@@ -78,38 +78,41 @@
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public async Task Execute(BehaviorContext<FlightState, CheckFlightCompletedScheduleMessage> context, Behavior<FlightState, CheckFlightCompletedScheduleMessage> next)
+        public async Task Execute(BehaviorContext<FlightState, FlightStartingEvent> context, Behavior<FlightState, FlightStartingEvent> next)
         {
             this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
 
-            if (this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel
-                    channel && channel.Users.Count == 0)
+            if (context.Instance.AnnouncementMessageId != default)
             {
-                await context.Publish(new FlightCompletedEvent { Id = context.Instance.CorrelationId });
+                await this.client.DeleteMessageFromChannelAsync(
+                    context.Instance.ChannelData.AnnouncementChannel,
+                    context.Instance.AnnouncementMessageId);
+
+                this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted message {context.Instance.AnnouncementMessageId} in {context.Instance.ChannelData.AnnouncementChannel}.");
             }
 
             await next.Execute(context);
         }
 
         /// <summary>
-        /// The activity faulted.
+        /// The message faulted.
         /// </summary>
+        /// <typeparam name="TException">
+        /// The exception.
+        /// </typeparam>
         /// <param name="context">
         /// The context.
         /// </param>
         /// <param name="next">
         /// The next.
         /// </param>
-        /// <typeparam name="TException">
-        /// The exception.
-        /// </typeparam>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public Task Faulted<TException>(BehaviorExceptionContext<FlightState, CheckFlightCompletedScheduleMessage, TException> context, Behavior<FlightState, CheckFlightCompletedScheduleMessage> next)
+        public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightStartingEvent, TException> context, Behavior<FlightState, FlightStartingEvent> next)
             where TException : Exception
         {
-            return next.Faulted(context);
+            await next.Faulted(context);
         }
 
         /// <summary>
@@ -120,7 +123,7 @@
         /// </param>
         public void Probe(ProbeContext context)
         {
-            context.CreateScope("check-flight-completed");
+            context.CreateScope("delete-announcement-message-activity");
         }
 
         #endregion Public Methods

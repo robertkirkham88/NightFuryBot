@@ -19,7 +19,7 @@
     /// <summary>
     /// The create active flight message activity.
     /// </summary>
-    public class CreateActiveFlightMessageActivity : Activity<FlightState, FlightStartingEvent>
+    public class CreateActiveFlightMessageActivity : Activity<FlightState, FlightStartingEvent>, Activity<FlightState, FlightCreatedEvent>
     {
         #region Private Fields
 
@@ -86,11 +86,41 @@
             if (!(this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel voiceChannel))
                 throw new ArgumentNullException($"SAGA {context.Instance.CorrelationId}: Voice channel with ID {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} not found.");
 
-            await this.client.DeleteMessageFromChannelAsync(
-                context.Instance.ChannelData.AnnouncementChannel,
-                context.Instance.AnnouncementMessageId);
+            // Create a new message.
+            var embed = await FlightActiveEmbed.CreateEmbed(
+                            context.Instance.Origin,
+                            context.Instance.Destination,
+                            context.Instance.StartTime,
+                            voiceChannel,
+                            context.Instance.VatsimPilotData);
 
-            this.logger.LogInformation($"SAGA {context.Instance.CorrelationId}: Deleted message {context.Instance.AnnouncementMessageId} in {context.Instance.ChannelData.AnnouncementChannel}.");
+            var message = await this.client.SendMessageToChannelAsync(
+                              context.Instance.ChannelData.ActiveFlightMessageChannel,
+                              embed: embed);
+
+            context.Instance.ActiveFlightMessageId = message.Id;
+
+            await next.Execute(context);
+        }
+
+        /// <summary>
+        /// Execute the activity.
+        /// </summary>
+        /// <param name="context">
+        /// The context.
+        /// </param>
+        /// <param name="next">
+        /// The next.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
+        public async Task Execute(BehaviorContext<FlightState, FlightCreatedEvent> context, Behavior<FlightState, FlightCreatedEvent> next)
+        {
+            this.logger.LogInformation("SAGA {@id}: Received {@data}", context.Instance.CorrelationId, context.Data);
+
+            if (!(this.client.GetChannel(context.Instance.VoiceChannelUlongId.GetValueOrDefault()) is SocketVoiceChannel voiceChannel))
+                throw new ArgumentNullException($"SAGA {context.Instance.CorrelationId}: Voice channel with ID {context.Instance.VoiceChannelUlongId.GetValueOrDefault()} not found.");
 
             // Create a new message.
             var embed = await FlightActiveEmbed.CreateEmbed(
@@ -125,6 +155,27 @@
         /// The <see cref="Task"/>.
         /// </returns>
         public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightStartingEvent, TException> context, Behavior<FlightState, FlightStartingEvent> next)
+                    where TException : Exception
+        {
+            await next.Faulted(context);
+        }
+
+        /// <summary>
+        /// The message faulted.
+        /// </summary>
+        /// <typeparam name="TException">
+        /// The exception.
+        /// </typeparam>
+        /// <param name="context">
+        /// The context.
+        /// </param>
+        /// <param name="next">
+        /// The next.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
+        public async Task Faulted<TException>(BehaviorExceptionContext<FlightState, FlightCreatedEvent, TException> context, Behavior<FlightState, FlightCreatedEvent> next)
                     where TException : Exception
         {
             await next.Faulted(context);

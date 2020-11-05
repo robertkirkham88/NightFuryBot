@@ -73,6 +73,7 @@
                 this.When(this.FlightStartingEvent)
                     .Activity(x => x.OfType<CreateVoiceChannelActivity>())
                     .Activity(x => x.OfType<CreateActiveFlightMessageActivity>())
+                    .Activity(x => x.OfType<DeleteAnnouncementMessageActivity>())
                     .Schedule(
                         this.CheckFlightCompletedSchedule,
                         context => context.Init<CheckFlightCompletedScheduleMessage>(
@@ -85,9 +86,8 @@
                         context => TimeSpan.FromMinutes(15))
                     .TransitionTo(this.Active),
                 this.When(this.FlightCreatedEvent)
-                    .Activity(x => x.OfType<CreateAnnouncementMessageActivity>())
                     .Activity(x => x.OfType<CreateVoiceChannelActivity>())
-                    .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
+                    .Activity(x => x.OfType<CreateActiveFlightMessageActivity>())
                     .Schedule(
                         this.CheckFlightCompletedSchedule,
                         context => context.Init<CheckFlightCompletedScheduleMessage>(
@@ -144,6 +144,8 @@
                             new UpdateVoiceChannelUsersScheduleMessage { Id = context.Instance.CorrelationId }),
                         context => TimeSpan.FromMinutes(15)),
                 this.When(this.FlightCompletedEvent)
+                    .Activity(x => x.OfType<DeleteActiveFlightMessageActivity>())
+                    .Activity(x => x.OfType<DeleteVoiceChannelActivity>())
                     .Then(
                         context =>
                             {
