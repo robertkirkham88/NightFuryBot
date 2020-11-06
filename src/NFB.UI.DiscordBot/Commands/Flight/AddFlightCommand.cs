@@ -72,7 +72,7 @@
         [Command("Add")]
         [Alias("a")]
         [Summary("!flight add [OriginICAO] [DestinationICAO] [StartTimeUTC]\r\nAdd a new flight, times are specified in UTC format and must be at least 15 minutes in the future.\r\nExamples:\r\n!flight add EGCC EGLL 23:30\r\n!flight add EGCC EGLL 09/19/2020 23:30\r\n!flight add EGCC EGLL 09/19/2020 23:30:15")]
-        public async Task ExecuteAsync(string origin, string destination, [Remainder] DateTime startTime)
+        public async Task<RuntimeResult> ExecuteAsync(string origin, string destination, [Remainder] DateTime startTime)
         {
             /*
              * User will type the command !flight add with the origin destination and scheduled time specified.
@@ -88,17 +88,7 @@
 
             if (channel == null)
             {
-                var errorMessage = await this.Context.Channel.SendMessageAsync(
-                    "It looks like you cannot book a flight from here! Please try again from one of the booking channels.");
-
-                await this.bus.Publish(
-                    new DiscordMessageExpiredEvent
-                    {
-                        ChannelId = this.Context.Channel.Id,
-                        MessageId = errorMessage.Id
-                    });
-
-                return;
+                return CommandResult.FromError("It looks like you cannot book a flight from here! Please try again from one of the booking channels.");
             }
 
             var message = new FlightSubmittedEvent
@@ -119,6 +109,8 @@
             };
 
             await this.bus.Publish(message);
+
+            return CommandResult.FromSuccess(string.Empty);
         }
 
         #endregion Public Methods
