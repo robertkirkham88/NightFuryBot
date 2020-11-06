@@ -71,6 +71,11 @@
         public ulong RequestMessageId { get; set; }
 
         /// <summary>
+        /// Gets or sets the request vatsim update schedule token.
+        /// </summary>
+        public Guid? RequestVatsimUpdateScheduleToken { get; set; }
+
+        /// <summary>
         /// Gets or sets the start time.
         /// </summary>
         public DateTime StartTime { get; set; }

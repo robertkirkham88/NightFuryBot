@@ -1,14 +1,12 @@
-﻿namespace NFB.Service.Vatsim.Services
+﻿namespace NFB.Service.Vatsim.Consumers.Events
 {
     using System;
     using System.Linq;
     using System.Net;
-    using System.Threading;
     using System.Threading.Tasks;
 
     using MassTransit;
 
-    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
     using Newtonsoft.Json;
@@ -17,12 +15,10 @@
     using NFB.Service.Vatsim.Models;
     using NFB.Service.Vatsim.Repositories;
 
-    using Timer = System.Timers.Timer;
-
     /// <summary>
-    /// The pilot service.
+    /// The request vatsim pilot data event consumer.
     /// </summary>
-    public class PilotService : IHostedService
+    public class RequestVatsimPilotDataEventConsumer : IConsumer<RequestVatsimPilotDataEvent>
     {
         #region Private Fields
 
@@ -34,24 +30,19 @@
         /// <summary>
         /// The logger.
         /// </summary>
-        private readonly ILogger<PilotService> logger;
+        private readonly ILogger<RequestVatsimPilotDataEventConsumer> logger;
 
         /// <summary>
         /// The repository.
         /// </summary>
         private readonly IPilotRepository repository;
 
-        /// <summary>
-        /// The timer.
-        /// </summary>
-        private readonly Timer timer;
-
         #endregion Private Fields
 
         #region Public Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PilotService"/> class.
+        /// Initializes a new instance of the <see cref="RequestVatsimPilotDataEventConsumer"/> class.
         /// </summary>
         /// <param name="repository">
         /// The repository.
@@ -62,17 +53,11 @@
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public PilotService(IPilotRepository repository, IBusControl bus, ILogger<PilotService> logger)
+        public RequestVatsimPilotDataEventConsumer(IPilotRepository repository, IBusControl bus, ILogger<RequestVatsimPilotDataEventConsumer> logger)
         {
             this.repository = repository;
             this.bus = bus;
             this.logger = logger;
-            this.timer = new Timer
-            {
-                AutoReset = true,
-                Enabled = false,
-                Interval = 120000
-            };
         }
 
         #endregion Public Constructors
@@ -80,51 +65,15 @@
         #region Public Methods
 
         /// <summary>
-        /// Start the service.
+        /// Consume the message.
         /// </summary>
-        /// <param name="cancellationToken">
-        /// The cancellation token.
+        /// <param name="context">
+        /// The context.
         /// </param>
         /// <returns>
         /// The <see cref="Task"/>.
         /// </returns>
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-            this.timer.Start();
-            this.timer.Elapsed += this.UpdatePilotInformation;
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Stop the service.
-        /// </summary>
-        /// <param name="cancellationToken">
-        /// The cancellation token.
-        /// </param>
-        /// <returns>
-        /// The <see cref="Task"/>.
-        /// </returns>
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            this.timer.Elapsed -= this.UpdatePilotInformation;
-            this.timer.Stop();
-            return Task.CompletedTask;
-        }
-
-        #endregion Public Methods
-
-        #region Private Methods
-
-        /// <summary>
-        /// Update the pilot and publish new pilot information.
-        /// </summary>
-        /// <param name="source">
-        /// The source caller.
-        /// </param>
-        /// <param name="e">
-        /// The elapsed event arguments.
-        /// </param>
-        private async void UpdatePilotInformation(object source, System.Timers.ElapsedEventArgs e)
+        public async Task Consume(ConsumeContext<RequestVatsimPilotDataEvent> context)
         {
             try
             {
@@ -171,6 +120,6 @@
             }
         }
 
-        #endregion Private Methods
+        #endregion Public Methods
     }
 }

@@ -45,6 +45,7 @@
             this.Schedule(() => this.UpdatePilotDataSchedule, p => p.UpdatePilotDataInMessageToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
             this.Schedule(() => this.CheckFlightCompletedSchedule, p => p.CheckFlightCompletedToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
             this.Schedule(() => this.UpdateVoiceChannelUsersSchedule, p => p.UpdateVoiceChannelUsersToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
+            this.Schedule(() => this.RequestVatsimUpdateSchedule, p => p.RequestVatsimUpdateScheduleToken, s => s.Received = p => p.CorrelateById(m => m.Message.Id));
 
             // Work flow
             this.Initially(
@@ -105,6 +106,12 @@
                 this.When(this.UserJoinedVoiceChannelEvent)
                     .Activity(x => x.OfType<AddUserToFlightActivity>())
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
+                    .If(
+                        (context) => context.Instance.RequestVatsimUpdateScheduleToken.HasValue == false,
+                        (activity) => activity.Schedule(
+                            this.RequestVatsimUpdateSchedule,
+                            context => context.Init<RequestVatsimUpdateScheduleMessage>(new RequestVatsimUpdateScheduleMessage { Id = context.Instance.CorrelationId }),
+                            context => TimeSpan.FromMinutes(2)))
                     .Schedule(
                         this.UpdatePilotDataSchedule,
                         context => context.Init<UpdatePilotDataScheduleMessage>(
@@ -114,6 +121,9 @@
                 this.When(this.UserLeftVoiceChannelEvent)
                     .Activity(x => x.OfType<RemoveUserFromFlightActivity>())
                     .Activity(x => x.OfType<UpdateActiveFlightMessageActivity>())
+                    .If(
+                        (context) => context.Instance.UsersInVoiceChannel.Count == 0,
+                        (activity) => activity.Unschedule(this.RequestVatsimUpdateSchedule))
                     .Schedule(
                         this.UpdatePilotDataSchedule,
                         context => context.Init<UpdatePilotDataScheduleMessage>(
@@ -143,6 +153,14 @@
                         context => context.Init<UpdateVoiceChannelUsersScheduleMessage>(
                             new UpdateVoiceChannelUsersScheduleMessage { Id = context.Instance.CorrelationId }),
                         context => TimeSpan.FromMinutes(15)),
+                this.When(this.RequestVatsimUpdateSchedule.Received)
+                    .Publish(new RequestVatsimPilotDataEvent())
+                    .If(
+                        (context) => context.Instance.UsersInVoiceChannel.Count > 0,
+                        (activity) => activity.Schedule(
+                            this.RequestVatsimUpdateSchedule,
+                            context => context.Init<RequestVatsimUpdateScheduleMessage>(new RequestVatsimUpdateScheduleMessage { Id = context.Instance.CorrelationId }),
+                            context => TimeSpan.FromMinutes(2))),
                 this.When(this.VoiceChannelRemovedEvent)
                     .Publish((context) => new FlightCompletedEvent { Id = context.Instance.CorrelationId }),
                 this.When(this.FlightCompletedEvent)
@@ -208,6 +226,11 @@
         /// Gets or sets the flight submitted event.
         /// </summary>
         public Event<FlightSubmittedEvent> FlightSubmittedEvent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the request vatsim update schedule.
+        /// </summary>
+        public Schedule<FlightState, RequestVatsimUpdateScheduleMessage> RequestVatsimUpdateSchedule { get; set; }
 
         /// <summary>
         /// Gets or sets the submitted.
