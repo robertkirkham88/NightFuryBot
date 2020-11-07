@@ -24,4 +24,8 @@
     <ProjectReference Include="..\..\src\NFB.Service.Vatsim\NFB.Service.Vatsim.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Mappings\" />
+  </ItemGroup>
+
 </Project>

@@ -51,12 +51,12 @@
             // Arrange
             var pilotUpdatedEvent = new VatsimPilotUpdatedEvent
             {
-                DestinationAirport = destination,
-                OriginAirport = origin,
+                PlannedDestinationAirport = destination,
+                PlannedDepartureAirport = origin,
                 Latitude = latitude,
                 Longitude = longitude,
                 UserId = 12354571241411,
-                VatsimId = "12380917241"
+                Cid = "12380917241"
             };
 
             // Act
@@ -75,17 +75,17 @@
             // Arrange
             var pilotUpdatedEvent = new VatsimPilotUpdatedEvent
             {
-                DestinationAirport = "EGCC",
-                OriginAirport = "EGLL",
+                PlannedDestinationAirport = "EGCC",
+                PlannedDepartureAirport = "EGLL",
                 Latitude = 50.50,
                 Longitude = 40.40,
                 UserId = 12354571241411,
-                VatsimId = "12380917241"
+                Cid = "12380917241"
             };
             var pilotData = new VatsimPilotModel
             {
-                DestinationAirport = "EGCC",
-                OriginAirport = "EGLL",
+                PlannedDestinationAirport = "EGCC",
+                PlannedDepartureAirport = "EGLL",
                 Latitude = 50.50,
                 Longitude = 40.40,
                 UserId = 12354571241411,
@@ -114,17 +114,17 @@
             // Arrange
             var pilotUpdatedEvent = new VatsimPilotUpdatedEvent
             {
-                DestinationAirport = destination,
-                OriginAirport = origin,
+                PlannedDestinationAirport = destination,
+                PlannedDepartureAirport = origin,
                 Latitude = latitude,
                 Longitude = longitude,
                 UserId = 12354571241411,
-                VatsimId = "12380917241"
+                Cid = "12380917241"
             };
             var pilotData = new VatsimPilotModel
             {
-                DestinationAirport = "EGCC",
-                OriginAirport = "EGLL",
+                PlannedDestinationAirport = "EGCC",
+                PlannedDepartureAirport = "EGLL",
                 Latitude = 50.50,
                 Longitude = 40.40,
                 UserId = 12354571241411,
@@ -136,8 +136,8 @@
             this.mapper.Map(pilotUpdatedEvent, pilotData);
 
             // Assert
-            Assert.Equal(pilotData.OriginAirport, origin);
-            Assert.Equal(pilotData.DestinationAirport, destination);
+            Assert.Equal(pilotData.PlannedDestinationAirport, origin);
+            Assert.Equal(pilotData.PlannedDepartureAirport, destination);
             Assert.Equal(pilotData.Latitude, latitude);
             Assert.Equal(pilotData.Longitude, longitude);
         }

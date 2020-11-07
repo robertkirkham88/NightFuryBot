@@ -5,6 +5,8 @@
     using System.Net;
     using System.Threading.Tasks;
 
+    using AutoMapper;
+
     using MassTransit;
 
     using Microsoft.Extensions.Logging;
@@ -33,6 +35,11 @@
         private readonly ILogger<RequestVatsimPilotDataEventConsumer> logger;
 
         /// <summary>
+        /// The mapper.
+        /// </summary>
+        private readonly IMapper mapper;
+
+        /// <summary>
         /// The repository.
         /// </summary>
         private readonly IPilotRepository repository;
@@ -53,11 +60,15 @@
         /// <param name="logger">
         /// The logger.
         /// </param>
-        public RequestVatsimPilotDataEventConsumer(IPilotRepository repository, IBusControl bus, ILogger<RequestVatsimPilotDataEventConsumer> logger)
+        /// <param name="mapper">
+        /// The mapper.
+        /// </param>
+        public RequestVatsimPilotDataEventConsumer(IPilotRepository repository, IBusControl bus, ILogger<RequestVatsimPilotDataEventConsumer> logger, IMapper mapper)
         {
             this.repository = repository;
             this.bus = bus;
             this.logger = logger;
+            this.mapper = mapper;
         }
 
         #endregion Public Constructors
@@ -89,20 +100,13 @@
                     if (isOnline != null)
                     {
                         await this.bus.Publish(
-                            new VatsimPilotUpdatedEvent
-                            {
-                                DestinationAirport = isOnline.PlannedDestinationAirport,
-                                OriginAirport = isOnline.PlannedDepartureAirport,
-                                Latitude = isOnline.Latitude,
-                                Longitude = isOnline.Longitude,
-                                VatsimId = isOnline.Cid,
-                                FlightHeading = isOnline.Heading,
-                                FlightAltitude = isOnline.Altitude,
-                                FlightSpeed = isOnline.GroundSpeed,
-                                CallSign = isOnline.Callsign,
-                                UserId = ulong.Parse(pilot.UserId),
-                                Status = "Online"
-                            });
+                            this.mapper.Map(
+                                isOnline,
+                                new VatsimPilotUpdatedEvent
+                                {
+                                    UserId = ulong.Parse(pilot.UserId),
+                                    Status = "Online"
+                                }));
                     }
                     else
                     {
